@@ -39,13 +39,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const token = credential?.accessToken;
       
       if (token) {
-        const { doc, setDoc } = await import("firebase/firestore");
-        const { db } = await import("@/lib/firebase");
-        // Store the token in firestore so the app can use it to query Calendar API
-        await setDoc(doc(db, "users", result.user.uid), {
-          calendarAccessToken: token,
-          lastLogin: new Date().toISOString()
-        }, { merge: true });
+        const idToken = await result.user.getIdToken();
+        // Send tokens to backend for encryption
+        await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idToken,
+            accessToken: token,
+            // Refresh token usually isn't provided directly in popup flow without offline access, 
+            // but we pass what we have.
+            refreshToken: result.user.refreshToken
+          })
+        });
       }
     } catch (error: any) {
       console.error("Error signing in with Google:", error);

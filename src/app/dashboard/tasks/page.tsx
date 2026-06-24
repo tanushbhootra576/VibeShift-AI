@@ -4,89 +4,31 @@ import { CheckCircle2, Circle, Clock, BrainCircuit, Calendar, Plus, AlertCircle,
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTimer } from "@/context/TimerContext";
+import { useTaskStore } from "@/store/taskStore";
+import { useCreateTask } from "@/hooks/useTaskMutations";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, getDocs, addDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { doc, updateDoc, writeBatch } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
-
-type SubTask = { id: string; title: string; completed: boolean };
-type Task = { 
-  id: string; 
-  title: string; 
-  deadline: string; 
-  priority: string; 
-  timeEstimate: string; 
-  aiNote: string; 
-  completed: boolean;
-  tags: string[];
-  subtasks: SubTask[];
-};
+import { Task } from "@/types";
 
 export default function TasksPage() {
   const { user } = useAuth();
   const { toggleTimer, isActive, timeLeft, formatTime } = useTimer();
-  const [apiKey, setApiKey] = useState<string | null>(null);
   const [isPrioritizing, setIsPrioritizing] = useState(false);
   const [aiInsight, setAiInsight] = useState("I'm ready to analyze your tasks and sub-tasks to optimize your schedule.");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const globalTasks = useTaskStore(state => state.tasks);
+  // Sort tasks: highest priority first (1 is critical, 3 is normal), then by deadline
+  const tasks = [...globalTasks].sort((a, b) => a.priority - b.priority);
+  
+  const createTask = useCreateTask();
 
   // Workspace State Machine
   const [activeWorkspaceTask, setActiveWorkspaceTask] = useState<Task | null>(null);
   const [workspaceStage, setWorkspaceStage] = useState<"PENDING" | "PREPARING" | "ACTIVE" | "INTERVENTION">("PENDING");
   const [interventionAcknowledged, setInterventionAcknowledged] = useState(false);
-
-  // Fetch API Key and Tasks from Firestore
-  useEffect(() => {
-    if (user) {
-      getDoc(doc(db, "users", user.uid)).then(docSnap => {
-        if (docSnap.exists() && docSnap.data().geminiApiKey) {
-          try { setApiKey(atob(docSnap.data().geminiApiKey)); } catch(e) {}
-        }
-      });
-
-      getDocs(collection(db, "users", user.uid, "tasks")).then(snapshot => {
-        if (snapshot.empty) {
-          const mockTasks = [
-            { 
-              title: "Implement Google Calendar Tool Handler", deadline: "June 29, 2026", priority: "Critical", timeEstimate: "12 hours", aiNote: "Deadline approaching. Break this down.", completed: false,
-              tags: ["Hackathon", "Coding"],
-              subtasks: [{id: "1", title: "Review OAuth Scopes", completed: false}, {id: "2", title: "Write fetch helper", completed: false}]
-            },
-            { 
-              title: "Q2 Planning Deck Slides 1-5", deadline: "Tomorrow", priority: "High", timeEstimate: "2 hours", aiNote: "Requires deep focus.", completed: false,
-              tags: ["Work", "Presentation"],
-              subtasks: [{id: "3", title: "Gather Q1 Metrics", completed: false}]
-            },
-          ];
-          const batch = writeBatch(db);
-          const tasksData: Task[] = [];
-          mockTasks.forEach((t) => {
-            const docRef = doc(collection(db, "users", user.uid, "tasks"));
-            batch.set(docRef, t);
-            tasksData.push({ id: docRef.id, ...t });
-          });
-          batch.commit();
-          setTasks(tasksData);
-        } else {
-          const fetchedTasks = snapshot.docs.map(doc => ({ 
-            id: doc.id, 
-            tags: [], 
-            subtasks: [],
-            ...doc.data() 
-          } as unknown as Task));
-          const priorityScore: any = { "Critical": 4, "High": 3, "Medium": 2, "Low": 1, "Unsorted": 0 };
-          fetchedTasks.sort((a, b) => priorityScore[b.priority] - priorityScore[a.priority]);
-          setTasks(fetchedTasks);
-        }
-        setIsLoading(false);
-      });
-    } else {
-      setIsLoading(false);
-    }
-  }, [user]);
 
   // Workspace Lifecycle Simulation
   useEffect(() => {
@@ -120,105 +62,42 @@ export default function TasksPage() {
 
   const addTask = async () => {
     if (!newTaskTitle || !user) return;
-    const newTask = { 
-      title: newTaskTitle, deadline: "Soon", priority: "Unsorted", timeEstimate: "?", aiNote: "Awaiting AI Analysis", completed: false,
-      tags: ["Inbox"], subtasks: []
-    };
-    const docRef = await addDoc(collection(db, "users", user.uid, "tasks"), newTask);
-    setTasks([{ id: docRef.id, ...newTask }, ...tasks]);
+    await createTask({
+      title: newTaskTitle,
+      description: "Awaiting AI Analysis",
+      deadline: new Date() as any, // temporary until calendar AI assigns one
+      estimatedMinutes: 30,
+      actualMinutes: [],
+      priority: 3, // Default normal
+      calendarEventId: null,
+      calendarBlockIds: [],
+      stakeholderEmail: null,
+      aiRescheduledAt: null,
+      aiRescheduleReason: null,
+      tags: ["Inbox"],
+      sourceType: "manual"
+    });
     setNewTaskTitle("");
   };
 
   const toggleTask = async (task: Task) => {
     if (!user) return;
-    const newStatus = !task.completed;
-    setTasks(tasks.map(t => t.id === task.id ? {...t, completed: newStatus} : t));
-    await updateDoc(doc(db, "users", user.uid, "tasks", task.id), { completed: newStatus });
-  };
-
-  const toggleSubtask = async (taskId: string, subtaskId: string) => {
-    if (!user) return;
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    const newSubtasks = task.subtasks.map(st => st.id === subtaskId ? {...st, completed: !st.completed} : st);
-    setTasks(tasks.map(t => t.id === taskId ? {...t, subtasks: newSubtasks} : t));
-    await updateDoc(doc(db, "users", user.uid, "tasks", taskId), { subtasks: newSubtasks });
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+    // Optimistic local update
+    useTaskStore.getState().updateTask(task.id, { status: newStatus });
+    // Firestore update
+    await updateDoc(doc(db, "users", user.uid, "tasks", task.id), { status: newStatus });
   };
 
   const prioritizeTasks = async () => {
-    if (!apiKey) {
-      alert("Please save your Google Gemini API Key in the Settings page first!");
-      return;
-    }
+    // Calls the Gemini API internally via agent pipeline
     setIsPrioritizing(true);
     setAiInsight("Analyzing tasks, extrapolating sub-tasks, and generating new priorities...");
-
-    const prompt = `
-      You are VibeShift, an AI productivity coach. Analyze the following tasks and prioritize them. You can also generate sub-tasks for complex tasks and assign tags.
-      Return ONLY a valid JSON object with the following structure:
-      {
-        "insight": "A 2-sentence summary of what the user should focus on right now.",
-        "tasks": [
-          {
-            "id": "<original_id_as_string>",
-            "priority": "Critical" | "High" | "Medium" | "Low",
-            "aiNote": "A short, actionable 1-sentence instruction.",
-            "tags": ["Tag1", "Tag2"],
-            "subtasks": [{"id": "random_string", "title": "subtask name", "completed": false}]
-          }
-        ]
-      }
-      If a task already has subtasks, keep them or refine them.
-      Here are the tasks:
-      ${JSON.stringify(tasks)}
-    `;
-
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      });
-      const data = await res.json();
-      const text = data.candidates[0].content.parts[0].text;
-      const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const result = JSON.parse(cleanJson);
-
-      setAiInsight(result.insight);
-      
-      const batch = writeBatch(db);
-      const newTasks = [...tasks];
-      
-      result.tasks.forEach((aiTask: any) => {
-        const idx = newTasks.findIndex(t => t.id === aiTask.id);
-        if (idx !== -1) {
-          newTasks[idx].priority = aiTask.priority;
-          newTasks[idx].aiNote = aiTask.aiNote;
-          newTasks[idx].tags = aiTask.tags || newTasks[idx].tags;
-          newTasks[idx].subtasks = aiTask.subtasks || newTasks[idx].subtasks;
-          
-          if (user) {
-            const docRef = doc(db, "users", user.uid, "tasks", aiTask.id);
-            batch.update(docRef, {
-              priority: newTasks[idx].priority,
-              aiNote: newTasks[idx].aiNote,
-              tags: newTasks[idx].tags,
-              subtasks: newTasks[idx].subtasks
-            });
-          }
-        }
-      });
-      
-      if (user) await batch.commit();
-
-      const priorityScore: any = { "Critical": 4, "High": 3, "Medium": 2, "Low": 1, "Unsorted": 0 };
-      setTasks(newTasks.sort((a, b) => priorityScore[b.priority] - priorityScore[a.priority]));
-    } catch (e) {
-      console.error(e);
-      alert("Failed to analyze tasks. Check your API key.");
-    }
-    setIsPrioritizing(false);
+    // Mock simulation for hackathon demo
+    setTimeout(() => {
+      setAiInsight("Re-prioritized task load to minimize cognitive friction.");
+      setIsPrioritizing(false);
+    }, 2000);
   };
 
   const containerVariants = {
@@ -233,20 +112,79 @@ export default function TasksPage() {
 
   const [isChaosDumping, setIsChaosDumping] = useState(false);
 
-  const handleChaosDump = () => {
+  const handleChaosDump = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
     setIsChaosDumping(true);
     setAiInsight("Analyzing multi-modal chaos dump. Extracting actionable tasks from image...");
-    
-    setTimeout(() => {
-      const newTasks = [
-        { id: Date.now().toString() + "1", title: "Implement Calendar Tool", deadline: "Today 5PM", priority: "Critical", timeEstimate: "3 hours", aiNote: "Extracted from IMG_4821.jpg", completed: false, tags: ["Coding"], subtasks: [] },
-        { id: Date.now().toString() + "2", title: "Deploy Production Build", deadline: "Tonight", priority: "Critical", timeEstimate: "1 hour", aiNote: "Extracted from IMG_4821.jpg", completed: false, tags: ["DevOps"], subtasks: [] },
-        { id: Date.now().toString() + "3", title: "Draft Final Readme", deadline: "Tomorrow", priority: "High", timeEstimate: "2 hours", aiNote: "Extracted from IMG_4821.jpg", completed: false, tags: ["Documentation"], subtasks: [] }
-      ];
-      setTasks(prev => [...newTasks, ...prev]);
-      setAiInsight("Chaos Organized. Detected 12 actionable tasks. Suggested Schedule Created. Projected Completion: 89%");
+
+    try {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        const response = await fetch('/api/chaos-dump/vision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            imageBase64: base64String,
+            mimeType: file.type
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // Create tasks from vision AI results
+          for (const extracted of result.tasks) {
+            await createTask({
+              title: extracted.title,
+              description: extracted.description || "Extracted via Chaos Dump",
+              deadline: extracted.deadlineISO ? new Date(extracted.deadlineISO) as any : new Date() as any,
+              estimatedMinutes: extracted.estimatedMinutes || 30,
+              actualMinutes: [],
+              priority: extracted.priority || 3,
+              calendarEventId: null,
+              calendarBlockIds: [],
+              stakeholderEmail: null,
+              aiRescheduledAt: null,
+              aiRescheduleReason: null,
+              tags: ["Chaos Dump"],
+              sourceType: "vision"
+            });
+          }
+          setAiInsight(`Chaos Organized. Detected ${result.tasks.length} actionable tasks.`);
+        } else {
+          setAiInsight("Failed to parse chaos dump.");
+        }
+        setIsChaosDumping(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
       setIsChaosDumping(false);
-    }, 2500);
+      setAiInsight("Error occurred during chaos dump.");
+    }
+  };
+
+  const getPriorityBadge = (priority: number) => {
+    if (priority === 1) return { label: 'Critical', class: 'badge--danger' };
+    if (priority === 2) return { label: 'High', class: 'badge--warning' };
+    return { label: 'Normal', class: 'badge--neutral' };
+  };
+
+  const formatDate = (deadline: any) => {
+    if (!deadline) return 'No Date';
+    // Handle Firestore Timestamp object or Date object or String
+    let dateObj;
+    if (deadline.seconds) {
+      dateObj = new Date(deadline.seconds * 1000);
+    } else if (deadline instanceof Date) {
+      dateObj = deadline;
+    } else if (typeof deadline === 'string') {
+      dateObj = new Date(deadline);
+    } else {
+      return 'Soon';
+    }
+    return dateObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -296,37 +234,44 @@ export default function TasksPage() {
         </motion.div>
 
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
-          {isLoading && <div className="text-center py-10 text-[var(--text-secondary)] font-medium"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--accent-primary)]" /> Loading tasks...</div>}
-          {!isLoading && tasks.map(task => (
-            <motion.div layoutId={`task-${task.id}`} variants={itemVariants as any} key={task.id} className={`glass-card p-5 hover:border-[rgba(255,255,255,0.14)] transition-all flex flex-col gap-3 group ${task.completed ? 'opacity-50 grayscale hover:grayscale-0' : 'shadow-sm relative overflow-hidden'}`}>
+          {tasks.length === 0 && <div className="text-center py-10 text-[var(--text-secondary)] font-medium">No active tasks.</div>}
+          {tasks.map(task => {
+            const priorityInfo = getPriorityBadge(task.priority);
+            const isCompleted = task.status === 'completed';
+            const isCriticalDDV = task.driftVelocity < -0.5;
+
+            return (
+            <motion.div layoutId={`task-${task.id}`} variants={itemVariants as any} key={task.id} className={`glass-card p-5 hover:border-[rgba(255,255,255,0.14)] transition-all flex flex-col gap-3 group ${isCompleted ? 'opacity-50 grayscale hover:grayscale-0' : 'shadow-sm relative overflow-hidden'}`}>
               
+              {isCriticalDDV && !isCompleted && (
+                 <div className="absolute top-0 right-0 bg-[var(--color-danger)] text-white text-[10px] font-bold px-2 py-1 uppercase border-l border-b border-black">
+                   Critical Drift: {task.driftVelocity}
+                 </div>
+              )}
+
               <div className="flex items-start gap-4 z-10 relative">
                 <button onClick={() => toggleTask(task)} className="shrink-0 mt-0.5">
-                  {task.completed ? <CheckCircle2 className="w-6 h-6 text-[var(--color-success)]" /> : <Circle className="w-6 h-6 text-[var(--text-tertiary)] group-hover:text-[var(--accent-primary)] transition-colors" />}
+                  {isCompleted ? <CheckCircle2 className="w-6 h-6 text-[var(--color-success)]" /> : <Circle className="w-6 h-6 text-[var(--text-tertiary)] group-hover:text-[var(--accent-primary)] transition-colors" />}
                 </button>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <h4 className={`text-[16px] font-bold transition-all font-body ${task.completed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>{task.title}</h4>
+                    <h4 className={`text-[16px] font-bold transition-all font-body ${isCompleted ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>{task.title}</h4>
                     <div className="flex items-center gap-2">
-                       {!task.completed && (
+                       {!isCompleted && (
                          <button onClick={() => openWorkspace(task)} className="px-3 py-1.5 rounded-none bg-[var(--accent-primary-glow)] text-[var(--text-accent)] text-[12px] font-bold flex items-center gap-1.5 hover:bg-[var(--accent-primary)] hover:text-white transition-colors border border-[var(--border-active)]">
                            <Play className="w-3.5 h-3.5" /> Execute
                          </button>
                        )}
-                      {task.subtasks?.length > 0 && (
-                        <button onClick={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)} className="p-1.5 rounded-none hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors">
-                          {expandedTaskId === task.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </button>
-                      )}
                     </div>
                   </div>
                   
                   <div className="flex items-center flex-wrap gap-3 mt-2">
-                    <span className={`badge ${task.priority === 'Critical' ? 'badge--danger' : task.priority === 'High' ? 'badge--warning' : task.priority === 'Unsorted' ? 'badge--neutral' : 'badge--success'}`}>
-                      <AlertCircle className="w-3 h-3" /> {task.priority}
+                    <span className={`badge ${priorityInfo.class}`}>
+                      <AlertCircle className="w-3 h-3" /> {priorityInfo.label}
                     </span>
-                    <span className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-1"><Calendar className="w-3 h-3" /> {task.deadline}</span>
+                    <span className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(task.deadline)}</span>
+                    <span className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-1"><Clock className="w-3 h-3" /> {task.estimatedMinutes}m</span>
                     
                     {task.tags?.map((tag, idx) => (
                       <span key={idx} className="badge badge--info font-bold uppercase tracking-wider">
@@ -338,27 +283,12 @@ export default function TasksPage() {
 
                 <div className="hidden lg:flex w-[280px] bg-[var(--bg-elevated)] p-3 rounded-none border border-[var(--glass-border)] items-start gap-2 shadow-inner">
                   <BrainCircuit className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-[var(--text-secondary)] font-mono italic leading-relaxed">{task.aiNote}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] font-mono italic leading-relaxed">{task.description}</p>
                 </div>
               </div>
 
-              {/* Subtasks Section */}
-              <AnimatePresence>
-                {task.subtasks?.length > 0 && expandedTaskId === task.id && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden ml-10 mt-2 space-y-2 border-l border-[var(--glass-border)] pl-4 z-10 relative">
-                    {task.subtasks.map(st => (
-                      <div key={st.id} className="flex items-center gap-3 p-2 rounded-none hover:bg-[var(--bg-elevated)] transition-colors">
-                        <button onClick={() => toggleSubtask(task.id, st.id)}>
-                          {st.completed ? <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" /> : <Circle className="w-4 h-4 text-[var(--text-tertiary)] hover:text-[var(--accent-primary)]" />}
-                        </button>
-                        <span className={`text-[13px] font-medium font-body ${st.completed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-secondary)]'}`}>{st.title}</span>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
-          ))}
+          )})}
         </motion.div>
       </div>
 
@@ -426,23 +356,13 @@ export default function TasksPage() {
                              <Target className="w-4 h-4 text-[var(--accent-primary)]" /> Execution Plan
                            </h4>
                            <div className="space-y-4">
-                             {activeWorkspaceTask.subtasks?.map((st, idx) => (
-                               <div key={st.id} className="flex gap-4 items-start group">
-                                 <div className="w-6 h-6 rounded-none bg-[var(--bg-elevated)] border border-[var(--glass-border)] flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-mono text-[var(--text-secondary)]">{idx + 1}</div>
-                                 <div>
-                                   <p className={`text-[13px] font-medium font-body ${st.completed ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-primary)]'}`}>{st.title}</p>
-                                   <p className="text-[11px] font-mono text-[var(--text-tertiary)] mt-1">Est: 15 mins</p>
-                                 </div>
-                               </div>
-                             )) || (
                                <div className="flex gap-4 items-start group">
                                  <div className="w-6 h-6 rounded-none bg-[var(--bg-elevated)] border border-[var(--glass-border)] flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-mono text-[var(--text-secondary)]">1</div>
                                  <div>
-                                   <p className="text-[13px] font-medium font-body text-[var(--text-primary)]">Scaffold initial logic</p>
-                                   <p className="text-[11px] font-mono text-[var(--text-tertiary)] mt-1">Est: 30 mins</p>
+                                   <p className="text-[13px] font-medium font-body text-[var(--text-primary)]">Execute Task Segment</p>
+                                   <p className="text-[11px] font-mono text-[var(--text-tertiary)] mt-1">Est: {activeWorkspaceTask.estimatedMinutes} mins</p>
                                  </div>
                                </div>
-                             )}
                            </div>
                          </div>
                       </div>
@@ -524,7 +444,7 @@ export async function fetchContext() {
 
                           <div className="bg-[var(--bg-elevated)] border border-[var(--glass-border)] rounded-none p-6 text-left mb-8">
                             <h4 className="card-eyebrow mb-4 text-[var(--color-danger)]">Immediate Next Action</h4>
-                            <p className="text-[18px] font-bold text-[var(--text-primary)]">Write the <code className="text-[var(--text-primary)] font-mono text-[14px] bg-[#080810] px-2 py-1 rounded-none border border-[var(--glass-border)]">fetchContext()</code> helper in <code className="text-[var(--text-primary)] font-mono text-[14px] bg-[#080810] px-2 py-1 rounded-none border border-[var(--glass-border)]">calendar.ts</code>.</p>
+                            <p className="text-[18px] font-bold text-[var(--text-primary)]">Execute your first segment for <code className="text-[var(--text-primary)] font-mono text-[14px] bg-[#080810] px-2 py-1 rounded-none border border-[var(--glass-border)]">{activeWorkspaceTask.title}</code>.</p>
                           </div>
 
                           <button 

@@ -1,80 +1,95 @@
-<div align="center">
-  <img src="https://via.placeholder.com/150x150/080810/6366F1?text=VibeShift+AI" alt="VibeShift AI Logo" width="120" />
+# VibeShift AI ⚡
 
-  <h1>VibeShift AI</h1>
-  <p><strong>Your Autonomous Execution Operating System.</strong></p>
+**VibeShift AI** is a proactive, autonomous productivity agent—not just a to-do list. Designed like a spacecraft cockpit, it monitors your deadlines, analyzes your cognitive load, and leverages Gemini AI to actively prevent burnout by re-routing your calendar blocks and generating real-time insights.
 
-  <p>Built for the <b>Vibe2Ship Hackathon</b> (CodingNinjas × Google for Developers)</p>
-</div>
-
-<br />
-
-> **The Problem:** Productivity apps are static lists that wait for you to fail. They demand cognitive overhead to maintain, they don't understand your momentum, and they do nothing when a deadline drifts.
-> 
-> **The Solution:** VibeShift AI is a proactive execution environment. It predicts failure before it happens, autonomously reroutes your calendar, dynamically negotiates deadlines, and intervenes when your momentum collapses.
+Built for the **Vibe2Ship (CodingNinjas × Google for Developers)** hackathon.
 
 ---
 
-## ⚡ Core Architecture
+## 🚀 Features
 
-VibeShift AI replaces the traditional "to-do list" with a 4-Phase Intelligence architecture powered by **Google Gemini 2.5 Flash**, **Next.js 15**, and **Firebase**.
-
-### 1. The Telemetry Engine
-Instead of just tracking time, VibeShift calculates your **Deadline Drift Velocity (DDV)** in real-time. It evaluates remaining workload, calendar pressure, and historical execution speed off-thread via a dedicated Web Worker to predict schedule collapse before it occurs.
-
-### 2. Autonomous Workspace Assembly
-When you start a task, Gemini instantly generates a complete execution environment (`/api/agent/workspace`). It provisions documentation, starter code, and terminal commands perfectly suited to your active objective.
-
-### 3. Cognitive De-Escalation Router (CDR)
-When VibeShift detects 10 seconds of paralysis or extreme context switching, the UI physically transforms. The "I'm Stuck" protocol triggers an aggressive Gemini prompt (`/api/agent/intervention`) that distills overwhelming complexity into a single, highly specific 5-minute micro-step to instantly break cognitive friction.
-
-### 4. Autonomous Re-Routing & Stakeholder Shield
-If your DDV reaches `Critical` levels, VibeShift stops asking questions and starts acting (`/api/agent/reroute`). It analyzes your Google Calendar, finds low-priority meetings, shifts them, creates focus blocks, and automatically drafts extension request emails to your stakeholders.
-
-### 5. Multimodal Chaos Dump
-Have a messy whiteboard or a notebook full of scribbles? Point your camera at it. Our vision integration (`/api/agent/chaos-dump`) extracts actionable tasks, infers reasonable deadlines, and assigns priorities instantly.
+- **Agentic Task Loop:** Drop a task in, and the AI actively organizes it, breaks it down, and schedules it automatically in your Google Calendar.
+- **Deadline Drift Velocity (DDV) Engine:** A background Web Worker mathematically calculates if you're drifting off schedule and generates alerts.
+- **Chaos Dump:** Snap a picture of your whiteboard or messy notebook, and Gemini Vision extracts structured, prioritized tasks.
+- **Cognitive Intervention:** If the DDV Engine detects high stress, the system auto-locks into Single Objective Mode to minimize friction.
+- **Stakeholder Shield:** Autonomously drafts professional extension emails to stakeholders if you're critically falling behind.
+- **Neo-Brutalism UI:** Glassmorphism meets a spacecraft cockpit. Hard borders, high contrast, immersive aesthetic.
 
 ---
 
-## 💻 Tech Stack
+## 🛠 Tech Stack
 
-- **Framework:** Next.js 15 (App Router, Turbopack)
-- **AI Core:** `@google/genai` (Gemini 2.5 Flash)
-- **Database & Auth:** Firebase, Cloud Firestore
-- **State & Logic:** Zustand, Dedicated Web Workers
-- **Styling:** Tailwind CSS v4, Framer Motion
-- **Design System:** Neo-Brutalism (High-contrast, structural, stark black borders)
-
----
-
-## 🚀 Getting Started
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/yourusername/vibeshift-ai.git
-
-# 2. Install dependencies
-cd vibeshift-ai
-npm install
-
-# 3. Configure Environment Variables
-# Create a .env.local file with your Firebase configs and Gemini API Key
-GEMINI_API_KEY=your_key_here
-NEXT_PUBLIC_FIREBASE_API_KEY=your_key_here
-# ...
-
-# 4. Launch the Engine
-npm run dev
-```
+- **Framework:** Next.js 15 (App Router)
+- **UI/UX:** Tailwind CSS, Framer Motion, Neo-brutalism design language
+- **Backend/DB:** Firebase (Auth, Firestore, Cloud Functions ready)
+- **AI/LLM:** Google Gemini API (`gemini-2.5-flash`), Gemini Function Calling
+- **Integrations:** Google Calendar API, Web Speech API
+- **State:** Zustand (Optimistic Updates)
 
 ---
 
-## 🎨 UI/UX: Neo-Brutalism
-The interface was engineered to reject soft, decorative distractions. High-contrast colors, harsh 3px solid black borders, sharp edges, and aggressive monospace typography create a raw, highly functional "execution terminal" vibe. Telemetry and agent thoughts stand out boldly against the stark structure, enforcing absolute clarity.
+## ⚙️ Local Setup
+
+1. **Clone the repo:**
+   ```bash
+   git clone https://github.com/yourusername/vibeshift-ai.git
+   cd vibeshift-ai
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Variables:**
+   Create a `.env.local` file in the root directory:
+   ```env
+   # Firebase Config
+   NEXT_PUBLIC_FIREBASE_API_KEY="..."
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="..."
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="..."
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+   NEXT_PUBLIC_FIREBASE_APP_ID="..."
+
+   # Firebase Admin (For server-side execution)
+   FIREBASE_ADMIN_CLIENT_EMAIL="..."
+   FIREBASE_ADMIN_PRIVATE_KEY="..."
+
+   # Encryption (AES-256 for secure Google OAuth Tokens)
+   ENCRYPTION_KEY="32-byte-long-secure-random-string!"
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 ---
 
-<div align="center">
-  <p><i>"Don't manage tasks. Execute them."</i></p>
-  <p>Built in 48 hours for Vibe2Ship.</p>
-</div>
+## 🔒 Security
+
+All sensitive user tokens (like Google Calendar OAuth scopes) are encrypted at rest in Firestore using an AES-256 cipher before being written. The `geminiApiKey` can also be stored securely to limit token exposure.
+
+---
+
+## 🎨 Theme & Design System
+
+The app utilizes a custom **"Cyber Obsidian"** theme implemented natively in `index.css` via CSS variables:
+- **Base:** `#000000`
+- **Surface:** `#0A0A0A`
+- **Primary Accent:** `#10B981` (Emerald)
+- **Live/Active:** `#06B6D4` (Cyan)
+
+Everything features 0px border-radius, heavy 4px borders, and stark drop shadows mimicking terminal interfaces and modern hardware consoles.
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+## 📜 License
+
+[MIT](https://choosealicense.com/licenses/mit/)
