@@ -21,7 +21,11 @@ export default function TasksPage() {
 
   const globalTasks = useTaskStore(state => state.tasks);
   // Sort tasks: highest priority first (1 is critical, 3 is normal), then by deadline
-  const tasks = [...globalTasks].sort((a, b) => a.priority - b.priority);
+  const tasks = [...globalTasks].sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    return a.priority - b.priority;
+  });
   
   const createTask = useCreateTask();
 
@@ -93,7 +97,7 @@ export default function TasksPage() {
     // Calls the Gemini API internally via agent pipeline
     setIsPrioritizing(true);
     setAiInsight("Analyzing tasks, extrapolating sub-tasks, and generating new priorities...");
-    // Mock simulation for hackathon demo
+    // Mock simulation for demo
     setTimeout(() => {
       setAiInsight("Re-prioritized task load to minimize cognitive friction.");
       setIsPrioritizing(false);
@@ -154,7 +158,8 @@ export default function TasksPage() {
           }
           setAiInsight(`Chaos Organized. Detected ${result.tasks.length} actionable tasks.`);
         } else {
-          setAiInsight("Failed to parse chaos dump.");
+          const errData = await response.json().catch(()=>({}));
+          setAiInsight(`Error: ${errData.error || "Failed to parse chaos dump."}`);
         }
         setIsChaosDumping(false);
       };
@@ -231,6 +236,31 @@ export default function TasksPage() {
             <input type="file" className="hidden" onChange={handleChaosDump} accept="image/*" />
             <Camera className="w-5 h-5" /> Chaos Dump
           </label>
+        </motion.div>
+
+        {/* Personalized Productivity Recommendation */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <div className="glass-card bg-[var(--accent-primary)] border-4 border-black p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-start gap-4 text-white">
+              <div className="w-12 h-12 bg-black border-2 border-white flex items-center justify-center shrink-0 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em]">Personalized Recommendation</span>
+                </div>
+                <h3 className="text-[18px] font-display font-bold leading-tight mb-2">Optimal time for "Respond to Client Emails"</h3>
+                <p className="text-[13px] font-mono opacity-90 max-w-xl">
+                  It's 2:00 PM. Based on your biometric data from yesterday, your execution velocity drops slightly post-lunch. I recommend clearing this quick win now before starting your next deep focus block.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 shrink-0 w-full md:w-auto">
+               <button className="flex-1 md:flex-none bg-white text-black font-bold font-mono text-[12px] uppercase tracking-widest px-6 py-3 border-2 border-black hover:translate-y-0.5 hover:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">Start Task</button>
+               <button className="flex-1 md:flex-none bg-black text-white font-bold font-mono text-[12px] uppercase tracking-widest px-6 py-3 border-2 border-white hover:bg-white hover:text-black transition-colors" onClick={(e) => (e.currentTarget.parentElement?.parentElement?.parentElement as HTMLElement).style.display = 'none'}>Dismiss</button>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
@@ -408,7 +438,7 @@ export async function fetchContext() {
                               </a>
                               <a href="#" className="flex-1 p-4 rounded-none bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.2)] hover:bg-[rgba(99,102,241,0.2)] transition-colors group">
                                 <p className="text-[13px] font-bold text-[var(--text-primary)] flex items-center justify-between">Past Project Notes <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0" /></p>
-                                <p className="text-[12px] text-[var(--accent-primary)] mt-1 font-mono">Vibe2Ship Architecture</p>
+                                <p className="text-[12px] text-[var(--accent-primary)] mt-1 font-mono">Project Architecture</p>
                               </a>
                            </div>
                         </div>

@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { 
   LayoutDashboard, Timer, BarChart2, Library, SlidersHorizontal, 
   TerminalSquare, Settings, ChevronDown, User as UserIcon, Flame, Target,
-  Menu, X
+  Menu, X, Calendar, Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -79,33 +79,13 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="p-4 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
-          <div className="px-3 mb-4 mt-2 text-[10px] font-black tracking-[0.2em] uppercase text-[var(--text-tertiary)]">Operations</div>
+          <div className="px-3 mb-4 mt-2 text-[10px] font-black tracking-[0.2em] uppercase text-[var(--text-tertiary)]">Core Companion</div>
           {[
             { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+            { icon: Calendar, label: "Calendar", href: "/dashboard/calendar" },
             { icon: Target, label: "Tasks & Goals", href: "/dashboard/tasks" },
-            { icon: Timer, label: "Deep Sessions", href: "/dashboard/sessions" },
-            { icon: BarChart2, label: "Analytics", href: "/dashboard/analytics" },
-            { icon: Library, label: "Break Library", href: "/dashboard/library" },
-          ].map((item, i) => {
-            const active = pathname === item.href;
-            return (
-              <Link 
-                key={i} 
-                href={item.href} 
-                onClick={() => isMobile && setIsOpen(false)}
-                className={`flex items-center gap-3 px-3 py-3 rounded-none font-bold text-[13px] uppercase tracking-wide transition-all border-2 ${active ? 'bg-[var(--accent-primary)] text-black border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] translate-x-1 -translate-y-1' : 'text-[var(--text-secondary)] border-transparent hover:border-black hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]'}`}
-              >
-                <item.icon className="w-4 h-4 z-10" />
-                <span className="z-10">{item.label}</span>
-              </Link>
-            );
-          })}
-
-          <div className="px-3 mt-10 mb-4 text-[10px] font-black tracking-[0.2em] uppercase text-[var(--text-tertiary)]">System</div>
-          {[
-            { icon: SlidersHorizontal, label: "Calibrate", href: "/dashboard/calibrate" },
-            { icon: TerminalSquare, label: "Agent Logs", href: "/dashboard/logs" },
-            { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+            { icon: Flame, label: "Goal Matrix", href: "/dashboard/habits" },
+            { icon: Sparkles, label: "Recommendations", href: "/dashboard/recommendations" },
           ].map((item, i) => {
             const active = pathname === item.href;
             return (

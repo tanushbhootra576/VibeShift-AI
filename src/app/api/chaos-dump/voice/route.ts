@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }); // using latest 2.5
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // using latest 2.5
 
     const prompt = `
 Extract tasks from this voice note transcript. Return ONLY valid JSON:

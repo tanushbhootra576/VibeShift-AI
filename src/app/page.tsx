@@ -61,7 +61,7 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
             className="inline-flex items-center gap-2 px-5 py-2 border-[4px] border-black bg-white text-black text-[15px] font-black uppercase tracking-widest mb-10 shadow-[6px_6px_0px_0px_#000] transform -rotate-1"
           >
-            <Sparkles className="w-5 h-5 text-[var(--accent-primary)]" /> Built for Vibe2Ship Hackathon
+            <Sparkles className="w-5 h-5 text-[var(--accent-primary)]" /> Built for High-Performance Operators
           </motion.div>
           
           <h1 className="text-6xl md:text-[90px] lg:text-[120px] font-display font-black text-black tracking-tighter mb-8 leading-[0.9] uppercase">
@@ -193,7 +193,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Hackathon Features Grid */}
+        {/* Core Features Grid */}
         <div id="features" className="mt-40 max-w-6xl w-full relative z-10">
           <div className="text-center mb-16 bg-black text-white py-16 px-6 border-[6px] border-black shadow-[16px_16px_0px_0px_var(--accent-primary)] transform rotate-1">
             <h2 className="text-[40px] md:text-[60px] font-display font-black tracking-tight uppercase leading-none mb-6">"The Last-Minute Life Saver"</h2>
@@ -290,7 +290,7 @@ export default function LandingPage() {
              <div className="w-5 h-5 bg-[var(--accent-primary)] border-[3px] border-black transform rotate-45"></div>
              <span className="tracking-widest">VibeShift AI</span>
            </div>
-           <p className="text-center md:text-right bg-[var(--accent-live)] text-white border-[4px] border-black px-6 py-3 shadow-[6px_6px_0px_0px_#000] transform -rotate-1">Built using Next.js & Gemini 2.0 for Vibe2Ship.</p>
+           <p className="text-center md:text-right bg-[var(--accent-live)] text-white border-[4px] border-black px-6 py-3 shadow-[6px_6px_0px_0px_#000] transform -rotate-1">Powered by Next.js & Gemini Intelligence.</p>
         </div>
       </main>
     </div>

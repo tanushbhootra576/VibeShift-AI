@@ -11,6 +11,7 @@ interface TimerContextType {
   toggleTimer: () => void;
   resetTimer: () => void;
   setMode: (mode: TimerMode) => void;
+  setCustomTime: (minutes: number) => void;
   formatTime: (seconds: number) => string;
 }
 
@@ -50,6 +51,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     else setTimeLeft(15 * 60);
   };
 
+  const setCustomTime = (minutes: number) => {
+    setIsActive(false);
+    setTimeLeft(minutes * 60);
+  };
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -57,7 +63,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TimerContext.Provider value={{ timeLeft, isActive, mode, toggleTimer, resetTimer, setMode: handleSetMode, formatTime }}>
+    <TimerContext.Provider value={{ timeLeft, isActive, mode, toggleTimer, resetTimer, setMode: handleSetMode, setCustomTime, formatTime }}>
       {children}
     </TimerContext.Provider>
   );

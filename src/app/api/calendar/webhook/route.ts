@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const userId = userDoc.id;
 
     // Ideally here we would fetch recent calendar events and sync to Firestore tasks.
-    // For hackathon, we acknowledge we received it.
+    // Acknowledge we received it
     console.log(`Received calendar webhook for user ${userId}`);
 
     return new Response('OK', { status: 200 });

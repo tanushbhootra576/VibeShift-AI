@@ -129,7 +129,7 @@ export async function findFreeSlots(
   const startHour = user?.preferences?.workStartHour ?? 9;
   const endHour = user?.preferences?.workEndHour ?? 18;
 
-  // Simple slot finding algorithm (dummy logic for hackathon)
+  // Simple slot finding algorithm (dummy logic for demo)
   // Just find gaps of durationMinutes between now and horizon that fall within work hours
   // For now, return a placeholder slot 1 hour from now
   const mockStart = new Date(now.getTime() + 60 * 60 * 1000);

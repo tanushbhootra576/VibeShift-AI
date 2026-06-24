@@ -12,10 +12,7 @@ export function useFirestoreTasks(userId: string | null) {
 
     const unsubscribe = onSnapshot(
       query(
-        collection(db, 'users', userId, 'tasks'),
-        where('status', '!=', 'completed'),
-        orderBy('status'), // Must order by the inequality field first
-        orderBy('deadline', 'asc')
+        collection(db, 'users', userId, 'tasks')
       ),
       (snapshot) => {
         snapshot.docChanges().forEach((change) => {

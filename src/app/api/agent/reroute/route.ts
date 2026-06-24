@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [{ role: 'user', parts: [{ text: `Drift Velocity: ${driftVelocity}\nCalendar: ${JSON.stringify(calendar)}\nTasks: ${JSON.stringify(tasks)}` }] }],
       config: {
         systemInstruction: systemInstruction,

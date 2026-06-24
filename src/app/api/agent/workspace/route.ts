@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 
     // Execute the GenAI call
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [{ role: 'user', parts: [{ text: `Task: ${taskTitle}\nContext: ${JSON.stringify(context)}` }] }],
       config: {
         systemInstruction: systemInstruction,

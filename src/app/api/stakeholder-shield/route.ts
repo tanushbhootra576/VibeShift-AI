@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const proposedSlot = newSlotOptions.length > 0 ? newSlotOptions[0] : null;
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
 Draft a professional, warm email requesting a deadline extension.

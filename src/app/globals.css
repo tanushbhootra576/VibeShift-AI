@@ -184,6 +184,7 @@
   .badge--danger { background: var(--color-danger); color: #FFFFFF; }
   .badge--info { background: var(--color-info); color: #FFFFFF; }
   .badge--neutral { background: #EEEEEE; color: #000000; }
+  .badge--cyan { background: #06B6D4; color: #000000; }
 
   .nav-item {
     display: flex;

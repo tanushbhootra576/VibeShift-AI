@@ -3,7 +3,7 @@ import { tools } from '@/lib/gemini';
 import { executeTool } from '@/lib/gemini-executor';
 import { adminDb } from '@/lib/firebase-admin';
 import { User, Task } from '@/types';
-// In a real app, import getServerSession. For hackathon, we assume userId is passed or mock it.
+// In a real app, import getServerSession. Here we assume userId is passed or mock it.
 
 function buildSystemPrompt(user: User, tasks: Task[]): string {
   const now = new Date().toLocaleString('en-IN', { timeZone: user?.preferences?.timezone || 'Asia/Kolkata' });
@@ -41,17 +41,22 @@ export async function POST(request: Request) {
     
     if (!userId) return new Response('Unauthorized', { status: 401 });
 
-    const userDoc = await adminDb.collection('users').doc(userId).get();
-    const user = userDoc.data() as User;
+    let user: User = { displayName: 'Hacker', preferences: { timezone: 'Asia/Kolkata', workStartHour: 9, workEndHour: 18 } } as any;
+    let tasks: Task[] = [];
     
-    const tasksSnap = await adminDb.collection('users').doc(userId).collection('tasks').where('status', '!=', 'completed').get();
-    const tasks = tasksSnap.docs.map((d: any) => d.data() as Task);
+    if (adminDb) {
+      const userDoc = await adminDb.collection('users').doc(userId).get();
+      if (userDoc.exists) user = userDoc.data() as User;
+      
+      const tasksSnap = await adminDb.collection('users').doc(userId).collection('tasks').where('status', '!=', 'completed').get();
+      tasks = tasksSnap.docs.map((d: any) => d.data() as Task);
+    }
 
     const systemPrompt = buildSystemPrompt(user, tasks);
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash', // Using latest version
+      model: 'gemini-flash-latest',
       tools,
       systemInstruction: systemPrompt,
     });
@@ -77,7 +82,11 @@ export async function POST(request: Request) {
 
 async function runGeminiLoop(model: any, messages: any[], userId: string, writer: any, encoder: any) {
   try {
-    const chat = model.startChat({ history: messages.slice(0, -1) });
+    const formattedHistory = messages.slice(0, -1).map((msg: any) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content || '' }]
+    }));
+    const chat = model.startChat({ history: formattedHistory });
     let continueLoop = true;
     let currentMessage = messages[messages.length - 1].content;
 

@@ -18,8 +18,8 @@ async function batchUpdateDDV(userId: string, results: DDVResult[]) {
 
 export function useDDVWorker() {
   const worker = useRef<Worker | null>(null);
-  const { tasks, userId, updateDDVValues } = useTaskStore();
-  const { triggerGeminiReschedule } = useGeminiStore();
+  const userId = useTaskStore(state => state.userId);
+  const triggerGeminiReschedule = useGeminiStore(state => state.triggerGeminiReschedule);
 
   useEffect(() => {
     if (!userId) return;
@@ -31,29 +31,30 @@ export function useDDVWorker() {
       const { type, results, tasks: criticalTasks } = event.data;
 
       if (type === 'ddv_update') {
-        await batchUpdateDDV(userId, results);
-        updateDDVValues(results);
+        // await batchUpdateDDV(userId, results); // Skip server batch update for now to save quota
+        useTaskStore.getState().updateDDVValues(results);
       }
 
       if (type === 'ddv_critical') {
         for (const criticalTask of criticalTasks) {
           triggerGeminiReschedule(criticalTask);
-          // UI can toast this or we can just rely on the store
         }
       }
     };
 
-    worker.current.postMessage({ tasks, userId });
+    // Calculate initial DDV
+    worker.current.postMessage({ tasks: useTaskStore.getState().tasks, userId });
+
+    // Poll every 10 seconds to recalculate DDV without infinite re-renders
+    const interval = setInterval(() => {
+      if (worker.current) {
+        worker.current.postMessage({ tasks: useTaskStore.getState().tasks, userId });
+      }
+    }, 10000);
 
     return () => {
+      clearInterval(interval);
       worker.current?.terminate();
     };
-  }, [userId]); // Initialize once per user
-
-  // Re-send updated tasks to worker when they change
-  useEffect(() => {
-    if (worker.current && userId) {
-      worker.current.postMessage({ tasks, userId });
-    }
-  }, [tasks, userId]);
+  }, [userId, triggerGeminiReschedule]); 
 }
