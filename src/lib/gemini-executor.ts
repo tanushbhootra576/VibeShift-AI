@@ -79,11 +79,11 @@ export async function executeTool(
 
         result = {
           taskCount: tasks.length,
-          overdueTasks: tasks.filter(t => new Date(t.deadline.toDate()) < new Date()).length,
+          overdueTasks: tasks.filter((t: any) => new Date(t.deadline.toDate()) < new Date()).length,
           committedMinutes,
           loadPercent,
           cognitiveLoad: loadPercent > 80 ? 'high' : loadPercent > 50 ? 'medium' : 'low',
-          criticalDDVTasks: tasks.filter(t => t.driftVelocity < -0.5).map(t => t.title),
+          criticalDDVTasks: tasks.filter((t: any) => t.driftVelocity < -0.5).map((t: any) => t.title),
         };
         break;
       }

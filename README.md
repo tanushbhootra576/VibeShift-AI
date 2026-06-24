@@ -1,30 +1,30 @@
 # VibeShift AI ⚡
 
-**VibeShift AI** is a proactive, autonomous productivity agent—not just a to-do list. Designed like a spacecraft cockpit, it monitors your deadlines, analyzes your cognitive load, and leverages Gemini AI to actively prevent burnout by re-routing your calendar blocks and generating real-time insights.
+**VibeShift AI** is a proactive, autonomous productivity agent—not just a to-do list. Designed with a striking Brutalist aesthetic, it monitors your deadlines, calculates cognitive load, and leverages Gemini 2.0 Flash to actively prevent burnout by auto-negotiating your calendar and generating real-time insights.
 
 Built for the **Vibe2Ship (CodingNinjas × Google for Developers)** hackathon.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Agentic Task Loop:** Drop a task in, and the AI actively organizes it, breaks it down, and schedules it automatically in your Google Calendar.
-- **Deadline Drift Velocity (DDV) Engine:** A background Web Worker mathematically calculates if you're drifting off schedule and generates alerts.
-- **Chaos Dump:** Snap a picture of your whiteboard or messy notebook, and Gemini Vision extracts structured, prioritized tasks.
+- **Agentic Task Loop:** Drop a task in, and the AI actively organizes, breaks down, and schedules it automatically in your Google Calendar.
+- **Deadline Drift Velocity (DDV) Engine:** A background Web Worker mathematically calculates if you're drifting off schedule and recommends interventions.
+- **Chaos Dump:** Snap a picture of your whiteboard or record a voice note, and Gemini 2.0 extracts structured, prioritized tasks.
 - **Cognitive Intervention:** If the DDV Engine detects high stress, the system auto-locks into Single Objective Mode to minimize friction.
-- **Stakeholder Shield:** Autonomously drafts professional extension emails to stakeholders if you're critically falling behind.
-- **Neo-Brutalism UI:** Glassmorphism meets a spacecraft cockpit. Hard borders, high contrast, immersive aesthetic.
+- **Stakeholder Shield:** Autonomously drafts professional extension emails to stakeholders via Gmail if you fall behind.
+- **Light Brutalist UI:** High contrast, sharp corners, thick borders, and grid patterns. A developer-focused "faux UI" that prioritizes readability and bold statements.
 
 ---
 
 ## 🛠 Tech Stack
 
 - **Framework:** Next.js 15 (App Router)
-- **UI/UX:** Tailwind CSS, Framer Motion, Neo-brutalism design language
-- **Backend/DB:** Firebase (Auth, Firestore, Cloud Functions ready)
-- **AI/LLM:** Google Gemini API (`gemini-2.5-flash`), Gemini Function Calling
-- **Integrations:** Google Calendar API, Web Speech API
-- **State:** Zustand (Optimistic Updates)
+- **UI/UX:** Tailwind CSS, Framer Motion, Brutalism design language, Lucide Icons
+- **Backend/DB:** Firebase (Auth, Firestore, Cloud Functions)
+- **Security:** Firebase App Check, NextAuth, Upstash Redis (Edge Rate Limiting), Zod (Schema Validation)
+- **AI/LLM:** Google Gemini API (`gemini-2.0-flash`), Gemini Function Calling
+- **Integrations:** Google Calendar API, Gmail API
 
 ---
 
@@ -42,23 +42,11 @@ Built for the **Vibe2Ship (CodingNinjas × Google for Developers)** hackathon.
    ```
 
 3. **Environment Variables:**
-   Create a `.env.local` file in the root directory:
-   ```env
-   # Firebase Config
-   NEXT_PUBLIC_FIREBASE_API_KEY="..."
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="..."
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="..."
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
-   NEXT_PUBLIC_FIREBASE_APP_ID="..."
-
-   # Firebase Admin (For server-side execution)
-   FIREBASE_ADMIN_CLIENT_EMAIL="..."
-   FIREBASE_ADMIN_PRIVATE_KEY="..."
-
-   # Encryption (AES-256 for secure Google OAuth Tokens)
-   ENCRYPTION_KEY="32-byte-long-secure-random-string!"
+   Copy the example environment file:
+   ```bash
+   cp .env.local.example .env.local
    ```
+   Fill in `.env.local` with your Firebase, Google Cloud, Gemini, and Upstash keys.
 
 4. **Run the development server:**
    ```bash
@@ -68,21 +56,24 @@ Built for the **Vibe2Ship (CodingNinjas × Google for Developers)** hackathon.
 
 ---
 
-## 🔒 Security
+## 🔒 Enterprise-Grade Security
 
-All sensitive user tokens (like Google Calendar OAuth scopes) are encrypted at rest in Firestore using an AES-256 cipher before being written. The `geminiApiKey` can also be stored securely to limit token exposure.
+- **Edge Rate Limiting:** All AI API routes are protected by Upstash Redis to prevent abuse.
+- **Token Encryption:** Sensitive Google OAuth tokens are encrypted at rest in Firestore using an AES-256 cipher.
+- **App Check:** Firebase resources are protected by App Check (via reCAPTCHA Enterprise) to prevent unauthorized backend access.
+- **Schema Validation:** Zod is used for strict runtime validation of all API inputs.
 
 ---
 
 ## 🎨 Theme & Design System
 
-The app utilizes a custom **"Cyber Obsidian"** theme implemented natively in `index.css` via CSS variables:
-- **Base:** `#000000`
-- **Surface:** `#0A0A0A`
-- **Primary Accent:** `#10B981` (Emerald)
-- **Live/Active:** `#06B6D4` (Cyan)
+The app utilizes a custom **"Brutalism"** theme implemented natively in `globals.css`:
+- **Base Background:** `#F4F4F0`
+- **Surface:** `#FFFFFF`
+- **Primary Accent:** `#FF3B30` (Red)
+- **Live/Active:** `#0000FF` (Blue)
 
-Everything features 0px border-radius, heavy 4px borders, and stark drop shadows mimicking terminal interfaces and modern hardware consoles.
+Everything features 0px border-radius, heavy block borders (`border-[4px] border-black`), and stark offset drop shadows (`shadow-[6px_6px_0px_0px_#000]`), mimicking blueprint wireframes and modern developer tools.
 
 ---
 

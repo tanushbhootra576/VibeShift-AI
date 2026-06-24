@@ -37,6 +37,7 @@ export default function DashboardPage() {
   // Phase 3: Predictive Intelligence (Deadline Drift)
   const [driftScore, setDriftScore] = useState(0.12);
   const [interventionStage, setInterventionStage] = useState<"NONE" | "CRITICAL" | "RECOVERING" | "RESOLVED">("NONE");
+  const [hasRecovered, setHasRecovered] = useState(false);
 
   // Sparkline data
   const [hrData, setHrData] = useState(Array(20).fill(70).map(v => v + Math.random()*20));
@@ -69,13 +70,18 @@ export default function DashboardPage() {
       });
 
       if (interventionStage === "NONE") {
-        setDriftScore(prev => {
-          const next = prev + 0.05;
-          if (next >= 0.55) {
-            setInterventionStage("CRITICAL");
-          }
-          return next;
-        });
+        if (hasRecovered) {
+          // Stay stable after recovery, stop popping up
+          setDriftScore(prev => Math.min(0.15, prev + 0.001));
+        } else {
+          setDriftScore(prev => {
+            const next = prev + 0.05;
+            if (next >= 0.55) {
+              setInterventionStage("CRITICAL");
+            }
+            return next;
+          });
+        }
       }
     }, 2000);
     return () => clearInterval(sim);
@@ -87,6 +93,7 @@ export default function DashboardPage() {
       const timer2 = setTimeout(() => {
         setInterventionStage("RESOLVED");
         setDriftScore(0.08);
+        setHasRecovered(true);
         
         const t = new Date();
         const format = (d: Date) => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
