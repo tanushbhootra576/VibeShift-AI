@@ -31,8 +31,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/calendar.events');
-    provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
     try {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
