@@ -21,16 +21,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   userId: null,
   setUserId: (id) => set({ userId: id }),
   setTasks: (tasks) => set({ tasks }),
-  addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
+  addTask: (task) => set((state) => {
+    if (state.tasks.some(t => t.id === task.id)) return state;
+    return { tasks: [...state.tasks, task] };
+  }),
   updateTask: (id, updates) => set((state) => ({
     tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t)
   })),
   removeTask: (id) => set((state) => ({
     tasks: state.tasks.filter(t => t.id !== id)
   })),
-  replaceTask: (tempId, realId) => set((state) => ({
-    tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: realId, status: 'pending' } : t)
-  })),
+  replaceTask: (tempId, realId) => set((state) => {
+    // If the realId was already added by onSnapshot, just remove the optimistic task
+    if (state.tasks.some(t => t.id === realId)) {
+      return { tasks: state.tasks.filter(t => t.id !== tempId) };
+    }
+    // Otherwise, rename the optimistic task
+    return {
+      tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: realId, status: 'pending' } : t)
+    };
+  }),
   updateDDVValues: (results) => set((state) => {
     const nextTasks = [...state.tasks];
     for (const result of results) {

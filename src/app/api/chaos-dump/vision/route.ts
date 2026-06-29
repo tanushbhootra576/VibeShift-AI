@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import Tesseract from 'tesseract.js';
+import { GoogleGenAI } from '@google/genai';
+
 
 export async function POST(request: Request) {
   try {
@@ -9,32 +9,10 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing image data' }, { status: 400 });
     }
 
-    // 1. OFFLINE OCR: Extract text using Tesseract.js to bypass Google Vision 503s
-    const bufferData = Buffer.from(imageBase64.replace(/^data:image\/\w+;base64,/, ""), 'base64');
-    const { data: { text: extractedText } } = await Tesseract.recognize(
-      bufferData,
-      'eng',
-      { logger: m => console.log(m) }
-    );
-
-    if (!extractedText.trim()) {
-      return Response.json({ error: 'No text detected in the image.' }, { status: 400 });
-    }
-
-    // 2. TEXT FORMATTING: Send the raw text to a highly-available text-only model
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash-lite', // Lite is highly available and perfect for text structuring
-      generationConfig: { responseMimeType: "application/json" }
-    });
-
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    
     const prompt = `
-You are a task extraction engine. I have extracted the raw text from an image (whiteboard/notes) via OCR.
-Raw OCR Text:
-"""
-${extractedText}
-"""
-
+You are a task extraction engine. I have an image (whiteboard/notes).
 Extract ALL actionable tasks from this text and return ONLY valid JSON:
 
 {
@@ -56,9 +34,15 @@ Priority scale: 1 = critical, 2 = important, 3 = normal.
 Today is ${new Date().toISOString()}.
 `;
 
-    const result = await model.generateContent(prompt);
+    const result = await ai.models.generateContent({ 
+      model: 'gemini-2.0-flash', 
+      contents: [
+        prompt, 
+        { inlineData: { data: imageBase64.replace(/^data:image\/\w+;base64,/, ""), mimeType } }
+      ] 
+    });
     
-    const text = result.response.text();
+    const text = result.text || "";
     const clean = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
     return Response.json(parsed);

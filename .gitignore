@@ -1,8 +1,10 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+﻿# =============================================================================
+# VibeShift AI — .gitignore
+# =============================================================================
 
-# dependencies
-/node_modules
-/.pnp
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,28 +12,13 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# ── Next.js ───────────────────────────────────────────────────────────────────
+.next/
+out/
+build/
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-firebase-debug.log*
-
-# env files
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+# Never commit actual credentials.
 .env
 .env.local
 .env.development.local
@@ -39,12 +26,32 @@ firebase-debug.log*
 .env.production.local
 *.local
 
-# Firebase
+# ── Firebase ──────────────────────────────────────────────────────────────────
 .firebase/
+firebase-debug.log*
 
-# vercel
-.vercel
-
-# typescript
+# ── TypeScript ────────────────────────────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+/coverage
+
+# ── OS & Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.pem
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Deployment ────────────────────────────────────────────────────────────────
+.vercel
+
+# ── Scratch / Debug files ─────────────────────────────────────────────────────
+errors.txt
+fix_headers.js
+apply-memphis.mjs

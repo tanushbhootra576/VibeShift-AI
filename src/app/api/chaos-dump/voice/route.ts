@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +8,8 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing transcript' }, { status: 400 });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // using latest 2.5
+    let genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const model = genAI; // using latest 2.5
 
     const prompt = `
 Extract tasks from this voice note transcript. Return ONLY valid JSON:
@@ -30,8 +30,9 @@ Today is ${new Date().toISOString()}.
 Transcript: "${transcript}"
 `;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const result = await genAI.models.generateContent({ model: 'gemini-2.0-flash', contents: prompt });
+    const text = result.text || "";
     const clean = text.replace(/```json|```/g, '').trim();
 
     try {

@@ -85,3 +85,62 @@ export interface StreakDay {
   allCompleted: boolean;
   focusMinutes: number;
 }
+
+export interface Goal {
+  id: string;
+  title: string;
+  type: 'weekly' | 'monthly';
+  progress: number;
+  tasksCompleted: number;
+  tasksTotal: number;
+  automations: string[];
+  status: 'active' | 'completed' | 'failed';
+  createdAt: Timestamp;
+}
+
+export interface VisualizerPhysicsState {
+  id: string;
+  userId: string;
+  taskId: string;
+  lastDraggedX: number | null;
+  lastDraggedY: number | null;
+  userAppliedTension: number;
+  isFrozenByUser: boolean;
+  updatedAt: Timestamp;
+}
+
+export interface UserCognitiveTelemetry {
+  id: string;
+  userId: string;
+  heartRateVariability: number | null;
+  interactionFrictionScore: number;
+  inferredState: 'ZEN_MODE' | 'SPRINT_MODE' | 'RECOVERY_MODE';
+  capturedAt: Timestamp;
+}
+
+export interface UserSacredBoundary {
+  id: string;
+  userId: string;
+  blockName: string;
+  dayOfWeek: number;
+  startTimeLocal: string;
+  endTimeLocal: string;
+  visualAlertColor: string;
+  createdAt: Timestamp;
+}
+
+export interface TaskEscalation {
+  id: string;
+  taskId: string;
+  userId: string;
+  currentLevel: number; // 0: Normal, 1: Nudge, 2: Hijack, 3: VoiceCall
+  lastEscalatedAt: Timestamp;
+  isResolved: boolean;
+  updatedAt: Timestamp;
+}
+
+export interface UserDistractionFilter {
+  id: string;
+  userId: string;
+  domainName: string;
+}

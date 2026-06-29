@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { adminDb } from '@/lib/firebase-admin';
 import { findFreeSlots } from '@/lib/calendar-server';
 import { Task, User } from '@/types';
@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     const newSlotOptions = await findFreeSlots(userId, task.estimatedMinutes, 120); // 5 days
     const proposedSlot = newSlotOptions.length > 0 ? newSlotOptions[0] : null;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    let genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const model = genAI;
 
     const prompt = `
 Draft a professional, warm email requesting a deadline extension.
@@ -46,8 +46,9 @@ Return ONLY valid JSON:
 }
 `;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const result = await genAI.models.generateContent({ model: 'gemini-2.0-flash', contents: prompt });
+    const text = result.text || "";
     const clean = text.replace(/```json|```/g, '').trim();
     
     try {

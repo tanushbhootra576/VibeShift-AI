@@ -1,199 +1,283 @@
 "use client";
 
-import { Target, Flame, Calendar, Award, Mail, Sparkles, Plus, CheckCircle2, Circle, BrainCircuit, Activity } from "lucide-react";
-import { useState } from "react";
-import { motion } from "framer-motion";
-
-const MOCK_HABITS = [
-  { id: 1, name: "Kinetic Reset (Exercise)", target: "Daily", streak: 12, aiAdjusted: false },
-  { id: 2, name: "Deep Work (90m block)", target: "Daily", streak: 5, aiAdjusted: true },
-  { id: 3, name: "Hydration Protocol", target: "Daily", streak: 28, aiAdjusted: false },
-];
-
-const MOCK_BADGES = [
-  { id: 1, name: "IRON WILL", desc: "10-Day Deep Work Streak", icon: Flame, color: "var(--accent-primary)", unlocked: true },
-  { id: 2, name: "COGNITIVE ELITE", desc: "100 Hours in Flow State", icon: BrainCircuit, color: "var(--color-info)", unlocked: true },
-  { id: 3, name: "SYSTEM OVERRIDE", desc: "Ignored 50 Distractions", icon: Target, color: "var(--color-warning)", unlocked: false },
-];
+import { Target, Flame, Calendar, Award, Mail, Sparkles, Plus, CheckCircle2, Circle, BrainCircuit, Activity, Settings, Send, CreditCard, Trash2, Edit2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import { collection, doc, addDoc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
 export default function HabitsPage() {
-  const [habits, setHabits] = useState(MOCK_HABITS);
+  const { user } = useAuth();
+  const [goals, setGoals] = useState<any[]>([]);
+  const [newGoalText, setNewGoalText] = useState("");
+  const [goalType, setGoalType] = useState<"weekly" | "monthly">("weekly");
   const [mailReminders, setMailReminders] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Generate 30-day heatmap data
-  const generateHeatmap = () => {
-    return Array.from({ length: 30 }).map((_, i) => ({
-      day: i,
-      intensity: Math.random() > 0.3 ? Math.floor(Math.random() * 4) + 1 : 0 // 0 to 4
-    }));
-  };
-  
-  const [heatmapData] = useState(generateHeatmap());
-
-  const getHeatmapColor = (intensity: number) => {
-    if (intensity === 0) return 'transparent';
-    if (intensity === 1) return 'rgba(0, 200, 83, 0.2)'; // Very light green
-    if (intensity === 2) return 'rgba(0, 200, 83, 0.5)';
-    if (intensity === 3) return 'rgba(0, 200, 83, 0.8)';
-    return 'var(--color-success)'; // Full green
+  const fetchGoals = async () => {
+    if (!user?.uid) return;
+    try {
+      const res = await fetch(`/api/goals?userId=${user.uid}`);
+      const data = await res.json();
+      if (data.success) {
+        setGoals(data.goals);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleHabit = (id: number) => {
-    // Just mock UI toggle for demo
-    alert('Habit Executed: Logged to secure ledger.');
+  useEffect(() => {
+    fetchGoals();
+  }, [user]);
+
+  const toggleAutomation = async (goalId: string, auto: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    
+    const newAutos = goal.automations.includes(auto) 
+      ? goal.automations.filter((a: string) => a !== auto)
+      : [...goal.automations, auto];
+
+    setGoals(goals.map(g => g.id === goalId ? { ...g, automations: newAutos } : g));
+
+    await fetch(`/api/goals/${goalId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: user?.uid, updates: { automations: newAutos } })
+    });
+  };
+
+  const handleCreateGoal = async () => {
+    if (!newGoalText || !user?.uid) return;
+    const tempId = Date.now().toString();
+    
+    const newG = {
+      id: tempId,
+      title: newGoalText,
+      type: goalType,
+      progress: 0,
+      tasksCompleted: 0,
+      tasksTotal: 5,
+      automations: ["Calendar Reminders"],
+      status: "active"
+    };
+    
+    setGoals([newG, ...goals]);
+    setNewGoalText("");
+
+    try {
+      const res = await fetch('/api/goals', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: user.uid,
+          title: newG.title,
+          type: newG.type,
+          automations: newG.automations
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGoals(prev => prev.map(g => g.id === tempId ? data.goal : g));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!user?.uid) return;
+    if (!confirm("Delete this goal?")) return;
+    
+    setGoals(goals.filter(g => g.id !== goalId));
+    await fetch(`/api/goals/${goalId}?userId=${user.uid}`, {
+      method: 'DELETE'
+    });
+  };
+
+  const handleIncrementProgress = async (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal || !user?.uid) return;
+
+    const newCompleted = Math.min(goal.tasksCompleted + 1, goal.tasksTotal);
+    const newProgress = Math.round((newCompleted / goal.tasksTotal) * 100);
+
+    setGoals(goals.map(g => g.id === goalId ? { ...g, tasksCompleted: newCompleted, progress: newProgress } : g));
+
+    await fetch(`/api/goals/${goalId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ 
+        userId: user.uid, 
+        updates: { tasksCompleted: newCompleted, progress: newProgress } 
+      })
+    });
+
+    // Cross-Route Telemetry Sync
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    
+    await addDoc(collection(db, "users", user.uid, "sessions"), {
+      date: dateStr,
+      time: timeStr,
+      duration: "Habit",
+      score: 100, // Habits give a max score boost!
+      type: "Habit Execution",
+      task: goal.title,
+      status: "Completed",
+      timestamp: now.getTime()
+    });
+
+    const analyticsRef = doc(db, "users", user.uid, "analytics", "overview");
+    const docSnap = await getDoc(analyticsRef);
+    if (docSnap.exists()) {
+      let current = docSnap.data().cognitiveLoad || [0,0,0,0,0,0,0,0,0,0];
+      if (JSON.stringify(current) === JSON.stringify([40, 60, 45, 80, 50, 70, 90, 85, 60, 40])) {
+         current = [0,0,0,0,0,0,0,0,0,0];
+      }
+      const updated = [...current.slice(1), Math.floor(Math.random() * 20) + 70]; // Boost load naturally
+      await updateDoc(analyticsRef, { cognitiveLoad: updated });
+    }
+
+    const telRef = doc(db, "users", user.uid, "telemetry", "live");
+    await setDoc(telRef, {
+       logs: arrayUnion(`Goal Progressed: ${goal.title}`),
+    }, { merge: true });
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-[var(--text-primary)] font-body relative">
-      <header className="px-8 py-6 flex items-center justify-between shrink-0 border-b-4 border-black z-10 bg-transparent">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-          <h2 className="text-[28px] font-display font-black text-[var(--text-primary)] flex items-center gap-2 tracking-tight uppercase">
-            <Target className="w-6 h-6 text-[var(--accent-primary)]" /> Goal & Habit Matrix
+    <div className="flex flex-col h-full bg-[var(--bg-base)] text-black font-body relative overflow-hidden">
+      <div className="absolute inset-0 pattern-dots opacity-10 pointer-events-none z-0" />
+      
+      <header className="pl-[72px] pr-4 md:px-8 py-4 md:py-6 flex items-center justify-between shrink-0 border-b-4 border-black z-10 bg-[var(--memphis-red)] relative overflow-hidden">
+        <div className="absolute inset-0 pattern-zigzag opacity-30 pointer-events-none" />
+        <div className="absolute top-4 right-8 w-12 h-12 border-4 border-black shape-triangle bg-[var(--memphis-yellow)] memphis-float hidden md:block" />
+        <div className="absolute bottom-2 left-[50%] w-8 h-8 border-4 border-black shape-circle bg-[var(--memphis-mint)] memphis-float hidden md:block" style={{ animationDelay: '1s' }} />
+
+        <div className="relative z-10">
+          <h2 className="text-[24px] md:text-[28px] font-display font-black text-white flex items-center gap-2 tracking-tight uppercase">
+            <Target className="w-6 h-6 md:w-8 md:h-8 text-white" /> Goal & Habit Matrix
           </h2>
-          <p className="text-[14px] text-[var(--text-tertiary)] mt-1 font-mono font-bold uppercase tracking-widest">
-            Behavioral Reprogramming Active
+          <p className="text-[12px] md:text-[14px] text-white mt-1 font-mono font-bold uppercase tracking-widest">
+            Weekly & Monthly Execution Tracking
           </p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-3">
-          <button className="btn-primary">
-            <Plus className="w-4 h-4" /> Initialize Goal
-          </button>
-        </motion.div>
+        </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-8 relative z-20">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative z-20">
         
-        {/* Top Section: AI Intervention & Mail Reminders */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          
-          {/* AI Dynamic Adjustments */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2 glass-card border-4 border-black bg-[var(--bg-elevated)] p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
-            <div>
-               <div className="card-eyebrow justify-between mb-4">
-                 <span><BrainCircuit className="w-4 h-4 inline mr-2 text-[var(--accent-primary)]" /> Agent Cognitive Load Balancing</span>
-                 <span className="badge badge--cyan animate-pulse">ACTIVE</span>
-               </div>
-               <p className="text-[14px] font-mono leading-relaxed max-w-xl text-[var(--text-secondary)]">
-                 <span className="text-[var(--text-primary)] font-bold">Log:</span> AI noticed your Sleep Latency was exceptionally high last night. To preserve your execution velocity, VibeShift has dynamically adjusted your <strong>Deep Work</strong> habit target from 120m to 90m for today.
-               </p>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <button className="text-[11px] font-bold font-mono uppercase bg-black text-white px-4 py-2 border-2 border-black hover:bg-[var(--accent-primary)] transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Accept Override</button>
-              <button className="text-[11px] font-bold font-mono uppercase bg-white text-black px-4 py-2 border-2 border-black hover:bg-gray-100 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Reject & Push Through</button>
-            </div>
-          </motion.div>
-
-          {/* Aggressive Mail Reminders */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-1 glass-card border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-             <div className="card-eyebrow mb-4">
-               <Mail className="w-4 h-4 text-[var(--color-warning)] mr-2" /> Aggressive Accountability
-             </div>
-             <p className="text-[12px] font-mono text-[var(--text-secondary)] mb-4">
-               When enabled, VibeShift AI will draft and send aggressive email/SMS reminders if a critical habit is missed by 8:00 PM.
-             </p>
-             <div className="mt-auto border-2 border-black p-3 bg-[var(--bg-base)] flex items-center justify-between cursor-pointer group" onClick={() => setMailReminders(!mailReminders)}>
-               <span className="text-[13px] font-bold uppercase">Enable AI Reminders</span>
-               <div className={`w-12 h-6 border-2 border-black p-0.5 flex items-center transition-colors ${mailReminders ? 'bg-[var(--color-success)]' : 'bg-gray-300'}`}>
-                 <div className={`w-4 h-4 bg-black transition-transform ${mailReminders ? 'translate-x-6' : 'translate-x-0'}`}></div>
-               </div>
-             </div>
-          </motion.div>
+        {/* Goal Creation Row */}
+        <div className="mb-6 md:mb-8 flex flex-col md:flex-row gap-4">
+          <input 
+            type="text" 
+            placeholder="E.g., Complete monthly audits..." 
+            className="flex-1 w-full bg-white rounded-none border-4 border-black p-3 md:p-4 font-bold text-black focus:outline-none focus:ring-4 focus:ring-[var(--memphis-pink)] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-[14px] md:text-[16px]"
+            value={newGoalText}
+            onChange={(e) => setNewGoalText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateGoal()}
+          />
+          <select 
+            className="w-full md:w-auto bg-white rounded-none border-4 border-black p-3 md:p-4 font-bold text-black uppercase cursor-pointer shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-4 focus:ring-[var(--memphis-pink)] text-[14px] md:text-[16px]"
+            value={goalType}
+            onChange={(e) => setGoalType(e.target.value as any)}
+          >
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <button onClick={handleCreateGoal} className="memphis-btn flex items-center justify-center gap-2 px-8 py-3 md:py-4 w-full md:w-auto">
+            <Plus className="w-5 h-5" /> Initialize Goal
+          </button>
         </div>
 
-        {/* Heatmap & Consistency Grid */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8 glass-card border-4 border-black bg-[var(--bg-elevated)] p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-           <div className="card-eyebrow justify-between mb-6">
-             <span><Activity className="w-4 h-4 inline mr-2 text-[var(--color-success)]" /> 30-Day Execution Matrix</span>
+        {/* AI Autopilot Capabilities */}
+        <div className="memphis-card memphis-card--yellow bg-white p-4 md:p-6 mb-6 md:mb-8">
+           <div className="card-eyebrow flex-col sm:flex-row justify-between mb-4 gap-2 sm:gap-0">
+             <span><BrainCircuit className="w-5 h-5 inline mr-2 text-[var(--memphis-pink)]" /> AI Automation Protocols</span>
+             <span className="badge badge--cyan animate-pulse w-max">ACTIVE</span>
            </div>
-           <div className="flex gap-2 overflow-x-auto pb-4 custom-scrollbar">
-             {heatmapData.map((day, i) => (
-               <div 
-                 key={i} 
-                 className="w-8 h-8 shrink-0 border-2 border-black transition-transform hover:-translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-help relative group"
-                 style={{ backgroundColor: getHeatmapColor(day.intensity) }}
-               >
-                 {/* Tooltip */}
-                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-black text-white text-[10px] p-2 text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-mono">
-                   Day {30 - i} ago<br/>
-                   Intensity: {day.intensity}/4
+           <p className="text-[12px] md:text-[14px] font-mono font-bold leading-relaxed text-black mb-4 md:mb-6">
+             VibeShift can securely interface with Google Workspace to accelerate your goals. Activate automations like <strong>Auto-Mail</strong> (drafting emails for updates), <strong>Auto-Pay</strong> (scanning bills in Gmail and scheduling calendar reminders), or <strong>Aggressive Reminders</strong> (SMS/Email alerts when falling behind).
+           </p>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="rounded-2xl border-4 border-black p-4 bg-white hover:bg-gray-50 transition-colors flex flex-col gap-2 cursor-pointer shadow-[4px_4px_0px_0px_var(--memphis-pink)]">
+                 <div className="flex items-center gap-2 font-bold font-display uppercase text-[14px] md:text-[16px]"><Mail className="w-5 h-5 text-[var(--memphis-blue)]" /> Auto-Mail Drafts</div>
+                 <p className="text-[10px] md:text-[11px] font-mono text-gray-700 font-bold">Agent reads project progress and drafts weekly update emails to stakeholders.</p>
+              </div>
+              <div className="rounded-2xl border-4 border-black p-4 bg-white hover:bg-gray-50 transition-colors flex flex-col gap-2 cursor-pointer shadow-[4px_4px_0px_0px_var(--memphis-mint)]">
+                 <div className="flex items-center gap-2 font-bold font-display uppercase text-[14px] md:text-[16px]"><CreditCard className="w-5 h-5 text-[var(--memphis-mint)]" /> Bill Parsing & Pay</div>
+                 <p className="text-[10px] md:text-[11px] font-mono text-gray-700 font-bold">Extracts invoices from Gmail, creates payment tasks, and blocks calendar time.</p>
+              </div>
+              <div className="rounded-2xl border-4 border-black p-4 bg-white hover:bg-gray-50 transition-colors flex flex-col gap-2 cursor-pointer shadow-[4px_4px_0px_0px_var(--memphis-blue)]" onClick={() => setMailReminders(!mailReminders)}>
+                 <div className="flex items-center gap-2 font-bold font-display uppercase text-[14px] md:text-[16px]"><Sparkles className="w-5 h-5 text-[var(--memphis-pink)]" /> Aggressive Nudges</div>
+                 <p className="text-[10px] md:text-[11px] font-mono text-gray-700 font-bold">Currently: {mailReminders ? 'Enabled' : 'Disabled'}. Automatically sends you harsh reminders if DDV drops.</p>
+              </div>
+           </div>
+        </div>
+
+        {/* Goals List */}
+        <div className="grid gap-6">
+          {loading ? (
+            <p className="text-center font-mono font-bold text-lg md:text-xl">Loading goals...</p>
+          ) : goals.length === 0 ? (
+            <div className="p-6 md:p-10 border-4 border-dashed border-black bg-white text-center text-black font-display font-black uppercase text-lg md:text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              No goals set yet. Initialize one above.
+            </div>
+          ) : goals.map((goal) => (
+            <div key={goal.id} className="memphis-card memphis-card--pink p-4 md:p-6 bg-white flex flex-col group">
+              <div className="flex flex-col md:flex-row justify-between items-start mb-4 md:mb-6 gap-4 md:gap-0">
+                 <div className="w-full md:w-auto flex flex-col items-start">
+                   <div className="flex justify-between w-full md:w-auto items-center mb-3">
+                     <span className={`badge inline-block ${goal.type === 'weekly' ? 'badge--warning' : 'badge--info'}`}>{goal.type.toUpperCase()} GOAL</span>
+                     <button onClick={() => handleDeleteGoal(goal.id)} className="md:hidden p-2 bg-[var(--memphis-red)] border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <Trash2 className="w-4 h-4 text-white" />
+                     </button>
+                   </div>
+                   <h3 className="text-[20px] md:text-[24px] font-display font-black uppercase text-black leading-tight flex items-center gap-3">
+                     {goal.title || goal.name}
+                     <button onClick={() => handleDeleteGoal(goal.id)} className="hidden md:block opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-[var(--memphis-red)] border-2 border-black rounded-xl hover:translate-x-0.5 hover:translate-y-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <Trash2 className="w-5 h-5 text-white" />
+                     </button>
+                   </h3>
                  </div>
-               </div>
-             ))}
-           </div>
-           <div className="flex items-center gap-4 mt-4 text-[10px] font-mono uppercase font-bold text-[var(--text-tertiary)]">
-             <span>Less</span>
-             <div className="flex gap-1">
-               {[0,1,2,3,4].map(v => (
-                 <div key={v} className="w-4 h-4 border border-black" style={{ backgroundColor: getHeatmapColor(v) }}></div>
-               ))}
-             </div>
-             <span>More</span>
-           </div>
-        </motion.div>
-
-        {/* Bottom Grid: Active Habits & Badges */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Active Habits List */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="card-eyebrow justify-between mb-4">
-              <span>Daily Protocols</span>
-            </div>
-            <div className="space-y-4">
-              {habits.map(habit => (
-                <div key={habit.id} className="border-2 border-black p-4 flex items-center justify-between hover:bg-[var(--bg-base)] transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => toggleHabit(habit.id)} className="w-6 h-6 shrink-0 group-hover:scale-110 transition-transform">
-                      <Circle className="w-6 h-6 text-gray-400 group-hover:text-black" />
-                    </button>
-                    <div>
-                      <h4 className="text-[14px] font-bold font-display uppercase leading-none">{habit.name}</h4>
-                      <div className="flex gap-2 mt-2">
-                        <span className="text-[9px] font-mono bg-black text-white px-1.5 py-0.5 uppercase tracking-widest">
-                           {habit.target}
+                 <div className="text-left md:text-right">
+                   <div className="text-[28px] md:text-[36px] font-black font-display text-[var(--memphis-pink)] leading-none" style={{ textShadow: '2px 2px 0px #000' }}>{goal.progress}%</div>
+                   <div className="text-[10px] md:text-[12px] font-mono font-black uppercase text-black mt-1 md:mt-2 tracking-widest">Progress</div>
+                 </div>
+              </div>
+              
+              <div className="w-full h-8 md:h-10 bg-white border-4 border-black relative overflow-hidden mb-6 cursor-pointer group/bar shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" onClick={() => handleIncrementProgress(goal.id)}>
+                 <div className="absolute top-0 left-0 h-full bg-[var(--memphis-pink)] border-r-4 border-black transition-all" style={{ width: `${goal.progress}%` }}></div>
+                 <div className="absolute inset-0 bg-[var(--memphis-yellow)] opacity-0 group-hover/bar:opacity-100 flex items-center justify-center text-[12px] md:text-[14px] font-black text-black tracking-widest uppercase transition-opacity">
+                    Click to Increment
+                 </div>
+              </div>
+              
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between mt-auto pt-4 md:pt-6 border-t-4 border-black gap-4">
+                 <div className="text-[12px] md:text-[14px] font-mono font-black flex items-center gap-2 uppercase tracking-widest">
+                    Tasks: <span className="bg-black text-white px-2 py-0.5 md:px-3 md:py-1 rounded-full">{goal.tasksCompleted} / {goal.tasksTotal}</span>
+                 </div>
+                 
+                 <div className="flex flex-wrap gap-2 md:gap-3">
+                    {/* Available automations toggle */}
+                    {["Auto-Mail", "Auto-Pay", "Calendar Reminders"].map((auto: string) => {
+                      const isActive = goal.automations?.includes(auto);
+                      return (
+                        <span 
+                          key={auto} 
+                          onClick={() => toggleAutomation(goal.id, auto)} 
+                          className={`text-[10px] md:text-[11px] px-3 md:px-4 py-2 md:py-2 uppercase font-black cursor-pointer transition-colors flex items-center gap-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-y-[2px] active:translate-x-[2px] ${isActive ? 'bg-[var(--memphis-mint)] text-black' : 'bg-white text-black'}`}
+                        >
+                          <Sparkles className="w-3 h-3 md:w-4 md:h-4" /> {auto}
                         </span>
-                        {habit.aiAdjusted && (
-                          <span className="text-[9px] font-mono bg-[var(--accent-primary)] text-white px-1.5 py-0.5 uppercase tracking-widest flex items-center gap-1">
-                             <Sparkles className="w-2 h-2" /> AI Adjusted
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[20px] font-black font-display text-[var(--accent-primary)] leading-none">{habit.streak}</div>
-                    <div className="text-[9px] font-mono uppercase text-[var(--text-tertiary)] mt-1">Day Streak</div>
-                  </div>
-                </div>
-              ))}
+                      );
+                    })}
+                 </div>
+              </div>
             </div>
-          </motion.div>
-
-          {/* Gamification & Badges */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="card-eyebrow justify-between mb-4">
-              <span><Award className="w-4 h-4 inline mr-2 text-[var(--color-warning)]" /> Operational Achievements</span>
-            </div>
-            <div className="space-y-4">
-              {MOCK_BADGES.map(badge => (
-                <div key={badge.id} className={`border-2 border-black p-4 flex items-center gap-4 transition-all ${badge.unlocked ? 'bg-white' : 'bg-gray-100 opacity-60 grayscale'}`}>
-                  <div className="w-12 h-12 border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: badge.unlocked ? badge.color : '#ccc' }}>
-                    <badge.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-[14px] font-bold font-display uppercase tracking-widest flex items-center gap-2">
-                      {badge.name}
-                      {!badge.unlocked && <span className="text-[9px] font-mono bg-black text-white px-1 py-0.5">LOCKED</span>}
-                    </h4>
-                    <p className="text-[11px] font-mono text-[var(--text-secondary)] mt-1">{badge.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
+          ))}
         </div>
-
       </div>
     </div>
   );

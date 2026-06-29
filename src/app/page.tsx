@@ -1,298 +1,675 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, BrainCircuit, Activity, Calendar, Target, CheckCircle2, Mic, PlayCircle, Code2, Zap, Shield, Layers, LayoutDashboard } from "lucide-react";
+import React, { useRef } from "react";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useInView,
+  type Variants,
+} from "framer-motion";
+import {
+  ArrowRight,
+  Sparkles,
+  Zap,
+  BrainCircuit,
+  Calendar,
+  Target,
+  ShieldAlert,
+  Timer,
+  StickyNote,
+  MoveUpRight,
+} from "lucide-react";
 import Link from "next/link";
 
-export default function LandingPage() {
-  return (
-    <div className="flex flex-col min-h-screen bg-[var(--bg-base)] text-black font-body overflow-x-hidden selection:bg-[var(--accent-primary)] selection:text-white relative">
-      
-      {/* Brutalist Grid Background Pattern */}
-      <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(black 2px, transparent 2px)', backgroundSize: '32px 32px' }}></div>
+/* ─── Animation variants ─── */
 
-      {/* Navigation */}
-      <motion.nav 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="fixed w-full z-50 px-6 md:px-12 py-4 flex items-center justify-between border-b-[4px] border-black bg-[var(--bg-base)] shadow-[0_4px_0px_0px_#000]"
+const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const EASE_SPRING: [number, number, number, number] = [0.34, 1.56, 0.64, 1];
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (delay: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: EASE_OUT, delay },
+  }),
+};
+
+const fadeIn: Variants = {
+  hidden: { opacity: 0 },
+  visible: (delay: number = 0) => ({
+    opacity: 1,
+    transition: { duration: 0.6, ease: "easeOut", delay },
+  }),
+};
+
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: (delay: number = 0) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, ease: EASE_SPRING, delay },
+  }),
+};
+
+const slideLeft: Variants = {
+  hidden: { opacity: 0, x: -60 },
+  visible: (delay: number = 0) => ({
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: EASE_OUT, delay },
+  }),
+};
+
+const slideRight: Variants = {
+  hidden: { opacity: 0, x: 60 },
+  visible: (delay: number = 0) => ({
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: EASE_OUT, delay },
+  }),
+};
+
+/* Scroll-triggered section wrapper */
+function RevealSection({
+  children,
+  className = "",
+  delay = 0,
+  variant = fadeUp,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  variant?: Variants;
+}) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      variants={variant}
+      initial="hidden"
+      animate={inView ? "visible" : "hidden"}
+      custom={delay}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* Floating decoration that gently bobs */
+function FloatingBlob({
+  className,
+  delay = 0,
+}: {
+  className: string;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      className={className}
+      animate={{
+        y: [0, -18, 0],
+        rotate: [0, 3, -2, 0],
+      }}
+      transition={{
+        duration: 7 + delay,
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay,
+      }}
+    />
+  );
+}
+
+/* Spinning decoration */
+function SpinDeco({
+  className,
+  duration = 20,
+}: {
+  className: string;
+  duration?: number;
+}) {
+  return (
+    <motion.div
+      className={className}
+      animate={{ rotate: 360 }}
+      transition={{ duration, repeat: Infinity, ease: "linear" }}
+    />
+  );
+}
+
+export default function LandingPage() {
+  /* Parallax on hero background blobs */
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const blobY1 = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const blobY2 = useTransform(scrollYProgress, [0, 1], [0, 80]);
+
+  /* Pipeline section */
+  const pipelineRef = useRef(null);
+  const pipelineInView = useInView(pipelineRef, { once: true, margin: "-100px" });
+
+  /* Features section */
+  const featuresRef = useRef(null);
+  const featuresInView = useInView(featuresRef, { once: true, margin: "-100px" });
+
+  /* Footer */
+  const footerRef = useRef(null);
+  const footerInView = useInView(footerRef, { once: true, margin: "-60px" });
+
+  return (
+    <div
+      className="min-h-screen bg-[#FDFBF7] text-black font-body overflow-x-hidden relative selection:bg-[#FF71CE] selection:text-white"
+      ref={heroRef}
+    >
+      {/* ─── PARALLAX BACKGROUND BLOBS ─── */}
+      <motion.div
+        style={{ y: blobY1 }}
+        className="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#FFCE5C] rounded-full mix-blend-multiply filter blur-[80px] opacity-40 pointer-events-none"
+      />
+      <motion.div
+        style={{ y: blobY2 }}
+        className="fixed bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#4ECDC4] rounded-full mix-blend-multiply filter blur-[100px] opacity-30 pointer-events-none"
+      />
+      <div className="fixed inset-0 pattern-squiggles opacity-[0.08] pointer-events-none z-0" />
+
+      {/* ─── NAVIGATION ─── */}
+      <motion.nav
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed top-0 w-full z-50 px-4 md:px-6 py-3 md:py-4 bg-white border-b-4 border-black flex items-center justify-between"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[var(--accent-primary)] border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex items-center justify-center">
-             <div className="w-5 h-5 bg-white border-2 border-black transform rotate-45"></div>
+        <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
+          <motion.div
+            className="flex items-center gap-2"
+            whileHover={{ scale: 1.04 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <motion.div
+              className="w-5 h-5 md:w-6 md:h-6 bg-[#FF71CE] border-2 border-black rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ rotate: [12, 20, 12, 5, 12] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <span className="font-display font-black uppercase tracking-tight text-lg md:text-xl">
+              VibeShift
+            </span>
+          </motion.div>
+
+          <div className="flex items-center gap-4">
+            <motion.div whileHover={{ y: -3, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                href="/auth"
+                className="bg-[#FFCE5C] border-2 md:border-4 border-black px-4 md:px-8 py-2 text-xs md:text-sm font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow block"
+              >
+                Log In
+              </Link>
+            </motion.div>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-[26px] font-display font-black text-black leading-none tracking-tight flex items-center gap-2 uppercase">
-              VibeShift <span className="text-[12px] px-2 py-0.5 bg-[var(--accent-live)] text-white border-2 border-black shadow-[2px_2px_0px_0px_#000] transform -rotate-3">v2.0</span>
-            </h1>
-            <p className="text-[11px] text-black tracking-[0.15em] mt-1 font-bold uppercase border-t-2 border-black pt-0.5 w-max">Autonomous Agent</p>
-          </div>
-        </div>
-        
-        <div className="hidden md:flex items-center gap-8 bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#000] px-6 py-2">
-          <Link href="#features" className="text-[15px] font-bold text-black uppercase hover:text-[var(--accent-primary)] transition-colors">Features</Link>
-          <div className="w-2 h-2 bg-black rounded-full"></div>
-          <Link href="#how-it-works" className="text-[15px] font-bold text-black uppercase hover:text-[var(--accent-live)] transition-colors">Pipeline</Link>
-          <div className="w-2 h-2 bg-black rounded-full"></div>
-          <Link href="#tech-stack" className="text-[15px] font-bold text-black uppercase hover:text-[var(--accent-primary)] transition-colors">Stack</Link>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <Link href="/auth" className="text-[16px] font-black text-black uppercase hover:underline hidden sm:block px-4 py-2 bg-white border-2 border-transparent hover:border-black transition-all">Login</Link>
-          <Link href="/auth" className="btn-primary text-[16px] px-6 py-3">
-            Try Demo
-          </Link>
         </div>
       </motion.nav>
 
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center pt-48 pb-20 px-6 relative w-full z-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="text-center max-w-5xl relative z-10 w-full mt-10"
-        >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-5 py-2 border-[4px] border-black bg-white text-black text-[15px] font-black uppercase tracking-widest mb-10 shadow-[6px_6px_0px_0px_#000] transform -rotate-1"
+      {/* ─── HERO ─── */}
+      <main className="pt-40 pb-32 px-6 max-w-7xl mx-auto relative z-10 flex flex-col lg:flex-row items-center gap-16 min-h-[95vh]">
+        <div className="flex-1 relative">
+          {/* Beta badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6, rotate: -20 }}
+            animate={{ opacity: 1, scale: 1, rotate: -12 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
+            className="relative inline-flex mb-6 md:mb-8 md:absolute md:-top-12 md:-left-6 bg-[#4ECDC4] border-4 border-black px-3 py-1 md:px-4 md:py-1 text-xs md:text-sm font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 items-center gap-2"
           >
-            <Sparkles className="w-5 h-5 text-[var(--accent-primary)]" /> Built for High-Performance Operators
-          </motion.div>
-          
-          <h1 className="text-6xl md:text-[90px] lg:text-[120px] font-display font-black text-black tracking-tighter mb-8 leading-[0.9] uppercase">
-            Never Miss <br/>
-            A <span className="text-white bg-[var(--accent-primary)] px-6 mx-2 inline-block border-[6px] border-black transform rotate-2 shadow-[8px_8px_0px_0px_#000]">Deadline</span> Again.
-          </h1>
-          
-          <div className="bg-white border-[4px] border-black p-6 shadow-[8px_8px_0px_0px_#000] max-w-3xl mx-auto mb-14 transform rotate-1">
-            <p className="text-[18px] md:text-[22px] text-black leading-relaxed font-bold">
-              Your autonomous AI productivity engine. VibeShift prioritizes tasks, dynamically schedules your calendar, and acts on your behalf <strong className="font-black bg-[var(--accent-live)] text-white px-2 py-0.5 border-2 border-black inline-block mt-2 sm:mt-0">before it's too late.</strong>
+            <motion.span
+              animate={{ rotate: [0, 20, -10, 20, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, delay: 1 }}
+            >
+              <Sparkles className="w-4 h-4" />
+            </motion.span>
+                    </motion.div>
+
+          {/* Headline */}
+          <div className="overflow-hidden">
+            <motion.h1
+              initial={{ opacity: 0, y: 80 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="text-[48px] sm:text-[65px] md:text-[90px] lg:text-[110px] font-display font-black leading-[0.85] tracking-tighter uppercase relative z-10"
+            >
+              Kill Your <br />
+              <span className="relative inline-block mt-2">
+                <motion.span
+                  className="absolute inset-0 bg-[#FF71CE] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                  initial={{ scaleX: 0, rotate: 0 }}
+                  animate={{ scaleX: 1, rotate: 2 }}
+                  transition={{ duration: 0.7, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ originX: 0 }}
+                />
+                <motion.span
+                  className="relative z-10 text-white px-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 1.2 }}
+                >
+                  Procrastination
+                </motion.span>
+              </span>
+            </motion.h1>
+          </div>
+
+          {/* Description card */}
+          <motion.div
+            initial={{ opacity: 0, y: 30, rotate: 0 }}
+            animate={{ opacity: 1, y: 0, rotate: -1 }}
+            transition={{ duration: 0.7, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-12 max-w-lg relative bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <motion.div
+              className="absolute -top-4 -right-4 w-8 h-8 bg-[#FFCE5C] border-4 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-20"
+              animate={{ scale: [1, 1.2, 1], rotate: [0, 15, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <p className="text-xl font-mono font-bold text-black leading-relaxed">
+              VibeShift isn&apos;t just a to-do list. It&apos;s a hostile, proactive AI
+              companion that forces you to execute your tasks before they crush
+              your schedule.
             </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-32">
-            <Link href="/dashboard" className="btn-primary text-[20px] py-5 px-12 flex items-center gap-3 w-full sm:w-auto justify-center hover:-translate-y-1 shadow-[8px_8px_0px_0px_#000] hover:shadow-[12px_12px_0px_0px_#000]">
-              <LayoutDashboard className="w-7 h-7" /> Enter Dashboard 
-            </Link>
-            <Link href="#how-it-works" className="bg-white text-black border-[4px] border-black font-bold uppercase text-[20px] py-5 px-12 flex items-center gap-3 w-full sm:w-auto justify-center transition-all shadow-[8px_8px_0px_0px_#000] hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_#000] hover:bg-gray-100">
-              <PlayCircle className="w-7 h-7 text-[var(--accent-live)]" /> Watch Demo
-            </Link>
-          </div>
-
-          {/* Brutalist Abstract Dashboard Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="w-full max-w-5xl mx-auto h-[450px] md:h-[600px] bg-white border-[6px] border-black shadow-[20px_20px_0px_0px_#000] flex flex-col relative overflow-hidden"
-          >
-            {/* Fake Window Header */}
-            <div className="h-14 border-b-[6px] border-black bg-black flex items-center justify-between px-6">
-               <div className="flex gap-3">
-                 <div className="w-5 h-5 border-[3px] border-black bg-[var(--color-danger)] rounded-full"></div>
-                 <div className="w-5 h-5 border-[3px] border-black bg-[var(--color-warning)] rounded-full"></div>
-                 <div className="w-5 h-5 border-[3px] border-black bg-[var(--color-success)] rounded-full"></div>
-               </div>
-               <div className="font-mono text-[14px] text-white font-bold tracking-widest uppercase">VibeShift / Dashboard UI</div>
-               <div className="w-5 h-5"></div>
-            </div>
-            
-            <div className="flex-1 flex p-8 gap-8 relative bg-[var(--bg-base)]">
-               {/* Sidebar mock */}
-               <div className="w-1/4 border-[4px] border-black bg-white hidden md:flex flex-col p-5 shadow-[6px_6px_0px_0px_#000]">
-                 <div className="h-10 w-full bg-black mb-8 border-[3px] border-black"></div>
-                 <div className="h-24 w-full bg-[var(--accent-primary)] border-[4px] border-black p-4 flex flex-col justify-between mb-6 shadow-[4px_4px_0px_0px_#000]">
-                    <div className="h-4 w-1/3 bg-white border-2 border-black"></div>
-                    <div className="h-6 w-2/3 bg-white border-2 border-black"></div>
-                 </div>
-                 <div className="h-12 w-full border-[3px] border-black mb-4 bg-[#EEEEEE]"></div>
-                 <div className="h-12 w-full border-[3px] border-black mb-4 bg-[#EEEEEE]"></div>
-                 <div className="h-12 w-full border-[3px] border-black mb-4 bg-[#EEEEEE]"></div>
-               </div>
-
-               {/* Main content mock */}
-               <div className="flex-1 flex flex-col gap-8">
-                 <div className="flex justify-between items-center bg-[var(--accent-live)] border-[4px] border-black p-5 shadow-[6px_6px_0px_0px_#000]">
-                   <div className="h-8 w-1/3 bg-white border-2 border-black"></div>
-                   <div className="h-12 w-12 bg-white border-[3px] border-black flex items-center justify-center shadow-[4px_4px_0px_0px_#000]">
-                     <Activity className="w-7 h-7 text-black" />
-                   </div>
-                 </div>
-                 
-                 <div className="flex-1 bg-white border-[4px] border-black p-8 flex flex-col gap-5 shadow-[6px_6px_0px_0px_#000] relative overflow-hidden">
-                    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 2px, transparent 0, transparent 50%)', backgroundSize: '16px 16px' }}></div>
-                    <div className="h-8 w-1/4 bg-black mb-4 border-2 border-black relative z-10"></div>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-20 w-full bg-[var(--bg-base)] border-[3px] border-black flex items-center px-6 gap-6 hover:bg-[#EEEEEE] transition-colors shadow-[4px_4px_0px_0px_#000] relative z-10">
-                        <div className="w-8 h-8 border-[3px] border-black bg-white"></div>
-                        <div className="flex-1">
-                          <div className="h-5 w-1/2 bg-black mb-2"></div>
-                          <div className="h-3 w-1/4 bg-[#888888]"></div>
-                        </div>
-                        {i === 1 && <div className="h-8 w-28 bg-[var(--accent-primary)] border-[3px] border-black"></div>}
-                      </div>
-                    ))}
-                 </div>
-               </div>
-            </div>
           </motion.div>
-        </motion.div>
 
-        {/* Tech Stack Marquee */}
-        <div id="tech-stack" className="mt-40 w-full border-y-[6px] border-black bg-[var(--accent-live)] py-14 relative z-10 overflow-hidden shadow-[0_10px_0px_0px_#000] transform -rotate-1 scale-105">
-          <div className="max-w-6xl mx-auto px-6 text-center mb-8">
-            <p className="text-[18px] text-white font-black tracking-[0.2em] uppercase bg-black inline-block px-4 py-1">Powered By Next-Gen Tech</p>
-          </div>
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 text-white">
-             <div className="flex items-center gap-4 font-display text-3xl font-black uppercase"><Code2 className="w-10 h-10" /> Next.js 15</div>
-             <div className="flex items-center gap-4 font-display text-3xl font-black uppercase"><Zap className="w-10 h-10 text-[var(--color-warning)]" /> Gemini 2.0 Flash</div>
-             <div className="flex items-center gap-4 font-display text-3xl font-black uppercase"><Shield className="w-10 h-10 text-[var(--color-success)]" /> App Check</div>
-             <div className="flex items-center gap-4 font-display text-3xl font-black uppercase"><Activity className="w-10 h-10 text-black" /> Upstash</div>
-          </div>
+          {/* CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.15, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-12 flex flex-wrap items-center gap-6 relative z-20"
+          >
+            <motion.div
+              whileHover={{ y: -5, rotate: 0 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 350, damping: 15 }}
+            >
+              <Link
+                href="/dashboard"
+                className="bg-[#6A7BB4] text-white border-4 border-black px-6 py-4 md:px-10 md:py-5 text-lg md:text-xl font-black uppercase tracking-widest shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-shadow flex items-center gap-3 transform rotate-1 w-full justify-center sm:w-auto"
+              >
+                Open OS
+                <motion.span
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <MoveUpRight className="w-6 h-6" />
+                </motion.span>
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
 
-        {/* How It Works Section */}
-        <div id="how-it-works" className="mt-40 max-w-6xl w-full relative z-10">
-          <div className="mb-20 border-b-[6px] border-black pb-8 flex flex-col md:flex-row items-end justify-between">
-            <div className="bg-white border-[4px] border-black p-8 shadow-[8px_8px_0px_0px_#000]">
-              <h2 className="text-[50px] md:text-[70px] font-display font-black text-black tracking-tight uppercase leading-none">The Pipeline</h2>
-              <p className="text-[22px] text-black font-bold mt-4 bg-[var(--color-warning)] inline-block px-2 border-2 border-black">A completely autonomous engine.</p>
+        {/* ─── HERO COLLAGE GRAPHIC ─── */}
+        <motion.div
+          initial={{ opacity: 0, x: 80 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.9, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="flex-1 relative w-full h-[500px] hidden md:block"
+        >
+          {/* Back card */}
+          <motion.div
+            className="absolute top-[10%] left-[10%] w-[80%] h-[80%] bg-white border-4 border-black shadow-[16px_16px_0px_0px_#4ECDC4]"
+            animate={{ rotate: [3, 5, 3, 1, 3] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          {/* Yellow card */}
+          <motion.div
+            className="absolute top-[20%] right-[5%] w-[60%] h-[70%] bg-[#FFCE5C] border-4 border-black shadow-[12px_12px_0px_0px_#FF71CE] flex flex-col p-6"
+            animate={{ rotate: [-6, -4, -6, -8, -6] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          >
+            <div className="flex-1 border-4 border-dashed border-black rounded-xl flex items-center justify-center bg-[#FDFBF7]">
+              <motion.div
+                animate={{ scale: [1, 1.15, 1], rotate: [0, 10, -5, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Target className="w-16 h-16 text-black opacity-20" />
+              </motion.div>
             </div>
-            <div className="hidden md:block w-32 h-32 border-[6px] border-black bg-[var(--accent-primary)] shadow-[10px_10px_0px_0px_#000] relative transform rotate-12 mt-8 md:mt-0">
-               <div className="absolute inset-0 flex items-center justify-center">
-                 <Zap className="w-16 h-16 text-white" />
-               </div>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-10 relative">
-            {/* Connecting line */}
-            <div className="hidden md:block absolute top-[64px] left-[15%] right-[15%] h-[6px] bg-black"></div>
-            
+          </motion.div>
+
+          {/* Floating sticker: Urgent Task */}
+          <motion.div
+            className="absolute top-0 right-10 bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3"
+            initial={{ opacity: 0, y: -20, rotate: 12 }}
+            animate={{ opacity: 1, y: 0, rotate: 12 }}
+            transition={{ duration: 0.6, delay: 1.2 }}
+            whileHover={{ scale: 1.05, rotate: 8 }}
+          >
+            <motion.div
+              className="w-8 h-8 bg-[#FF6B6B] rounded-full border-4 border-black"
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <span className="font-black uppercase text-sm">Urgent Task</span>
+          </motion.div>
+
+          {/* Floating sticker: Time Blocked */}
+          <motion.div
+            className="absolute bottom-10 left-0 bg-[#6A7BB4] text-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+            initial={{ opacity: 0, x: -30, rotate: -6 }}
+            animate={{ opacity: 1, x: 0, rotate: -6 }}
+            transition={{ duration: 0.6, delay: 1.4 }}
+            whileHover={{ scale: 1.06, rotate: -3 }}
+          >
+            <span className="font-display font-black text-2xl uppercase">Time Blocked</span>
+          </motion.div>
+
+          {/* Spinning decorative ring */}
+          <SpinDeco
+            className="absolute top-[40%] left-[40%] w-20 h-20 border-[5px] border-dashed border-[#FF71CE] rounded-full opacity-60 pointer-events-none"
+            duration={12}
+          />
+        </motion.div>
+      </main>
+
+      {/* ─── ZIG-ZAG DIVIDER ─── */}
+      <motion.div
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        style={{ originX: 0 }}
+        className="w-full h-12 pattern-zigzag opacity-100 border-y-4 border-black bg-white"
+      />
+
+      {/* ─── STAGGERED PIPELINE ─── */}
+      <section
+        id="pipeline"
+        className="py-32 px-6 bg-[#4ECDC4] relative border-b-4 border-black overflow-hidden"
+        ref={pipelineRef}
+      >
+        {/* Spinning ring */}
+        <SpinDeco
+          className="absolute top-[-50px] right-[-50px] w-64 h-64 border-[16px] border-[#FFCE5C] rounded-full opacity-50"
+          duration={25}
+        />
+        <FloatingBlob
+          className="absolute bottom-10 left-[-30px] w-32 h-32 bg-[#FF71CE] border-4 border-black rounded-full opacity-40 pointer-events-none"
+          delay={2}
+        />
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <RevealSection variant={slideLeft}>
+            <h2 className="text-[40px] md:text-[80px] font-display font-black uppercase text-black mb-16 transform -rotate-2 inline-block bg-white border-4 border-black px-6 shadow-[8px_8px_0px_0px_#FF71CE]">
+              The Method
+            </h2>
+          </RevealSection>
+
+          <div className="flex flex-col gap-12">
             {[
-              { step: "01", title: "Chaos Dump", desc: "Upload an image of your messy whiteboard or record a quick voice note. Gemini extracts structured tasks instantly.", icon: <Layers />, color: "var(--accent-primary)" },
-              { step: "02", title: "Intelligent Schedule", desc: "The AI calculates 'Deadline Drift Velocity' and automatically blocks time on your Calendar to ensure completion.", icon: <Calendar />, color: "var(--accent-live)" },
-              { step: "03", title: "Autopilot Mode", desc: "If you fall behind, the agent autonomously reschedules your tasks and drafts extension emails to stakeholders.", icon: <BrainCircuit />, color: "var(--color-success)" }
-            ].map((item, i) => (
-              <div key={i} className="relative flex flex-col items-center text-center group">
-                <div className="w-32 h-32 bg-white border-[6px] border-black flex items-center justify-center relative z-10 mb-8 shadow-[10px_10px_0px_0px_#000] group-hover:-translate-y-2 group-hover:shadow-[14px_14px_0px_0px_#000] transition-all" style={{ borderBottomColor: item.color, borderBottomWidth: '12px' }}>
-                   <div className="absolute -top-5 -left-5 text-[20px] font-black text-white px-4 py-1 border-[4px] border-black shadow-[6px_6px_0px_0px_#000]" style={{ backgroundColor: item.color }}>{item.step}</div>
-                   {React.cloneElement(item.icon as React.ReactElement, { className: "w-14 h-14 text-black" })}
+              {
+                num: "1",
+                title: "Chaos Dump",
+                desc: "Throw your unstructured mess at it. The AI instantly extracts structured data.",
+                icon: <BrainCircuit />,
+                color: "#FFCE5C",
+                margin: "md:ml-0",
+              },
+              {
+                num: "2",
+                title: "Temporal Sync",
+                desc: "Tasks are given physical mass and injected directly into your calendar.",
+                icon: <Calendar />,
+                color: "#FF71CE",
+                margin: "md:ml-24",
+              },
+              {
+                num: "3",
+                title: "Execution",
+                desc: "Hostile interventions if you drift. We literally call your phone.",
+                icon: <Zap />,
+                color: "#6A7BB4",
+                margin: "md:ml-48",
+              },
+            ].map((step, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                initial="hidden"
+                animate={pipelineInView ? "visible" : "hidden"}
+                custom={i * 0.18}
+                className={`bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] max-w-2xl flex flex-col md:flex-row gap-8 items-start relative ${step.margin}`}
+                whileHover={{ rotate: -1, y: -4 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+              >
+                {/* Tape graphic */}
+                <div className="absolute -top-4 left-1/2 w-24 h-8 bg-white/60 border-2 border-black transform -translate-x-1/2 rotate-3 z-10 backdrop-blur-sm" />
+
+                <motion.div
+                  className="w-20 h-20 border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] shrink-0"
+                  style={{ backgroundColor: step.color }}
+                  initial={{ rotate: -3 }}
+                  animate={{ rotate: -3 }}
+                  whileHover={{ rotate: 0, scale: 1.08 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {React.cloneElement(step.icon as React.ReactElement<any>, {
+                    className: "w-10 h-10 text-black",
+                  })}
+                </motion.div>
+
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-display font-black uppercase mb-3">
+                    <span className="text-[#FF71CE] mr-2">0{step.num}.</span>
+                    {step.title}
+                  </h3>
+                  <p className="text-lg font-mono font-bold text-gray-700 leading-relaxed border-l-4 border-black pl-4">
+                    {step.desc}
+                  </p>
                 </div>
-                <div className="bg-white border-[4px] border-black p-6 shadow-[6px_6px_0px_0px_#000] w-full transform group-hover:rotate-1 transition-all">
-                  <h3 className="text-[24px] font-display font-black text-black mb-4 uppercase">{item.title}</h3>
-                  <p className="text-[16px] text-black font-bold leading-relaxed text-left border-t-[3px] border-black pt-4">{item.desc}</p>
-                </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* Core Features Grid */}
-        <div id="features" className="mt-40 max-w-6xl w-full relative z-10">
-          <div className="text-center mb-16 bg-black text-white py-16 px-6 border-[6px] border-black shadow-[16px_16px_0px_0px_var(--accent-primary)] transform rotate-1">
-            <h2 className="text-[40px] md:text-[60px] font-display font-black tracking-tight uppercase leading-none mb-6">"The Last-Minute Life Saver"</h2>
-            <p className="text-[22px] font-bold bg-[var(--accent-live)] inline-block px-4 py-2 border-[3px] border-black text-white">How VibeShift tackles Problem Statement 1</p>
+      {/* ─── FEATURES BENTO ─── */}
+      <section
+        id="features"
+        className="py-32 px-6 max-w-7xl mx-auto"
+        ref={featuresRef}
+      >
+        <RevealSection>
+          <h2 className="text-[40px] md:text-[80px] font-display font-black uppercase text-black mb-16 text-center">
+            Arsenal
+          </h2>
+        </RevealSection>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-[300px]">
+          {/* Bento 1: Large */}
+          <motion.div
+            variants={slideLeft}
+            initial="hidden"
+            animate={featuresInView ? "visible" : "hidden"}
+            custom={0}
+            className="md:col-span-8 bg-white border-4 border-black p-10 shadow-[12px_12px_0px_0px_#FFCE5C] relative group overflow-hidden flex flex-col justify-end"
+            whileHover={{ y: -6 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18 }}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 pattern-dots opacity-20 rounded-bl-full border-b-4 border-l-4 border-black" />
+            <motion.div
+              className="absolute top-6 left-6 bg-black text-white px-4 py-2 font-black uppercase text-sm border-2 border-black z-10 shadow-[4px_4px_0px_0px_#FF71CE]"
+              animate={{ rotate: [-3, -1, -3] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Spatial UI
+            </motion.div>
+
+            <motion.div
+              animate={{ rotate: [0, 8, -4, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <StickyNote className="w-16 h-16 text-[#FFCE5C] mb-6 relative z-10" />
+            </motion.div>
+            <h3 className="text-[32px] md:text-[40px] font-black font-display uppercase relative z-10">
+              Sticky Matrix
+            </h3>
+            <p className="text-lg font-mono font-bold text-gray-700 max-w-md relative z-10">
+              Drag, drop, and color-code raw thoughts on a chaotic 2D canvas.
+            </p>
+          </motion.div>
+
+          {/* Bento 2: Tall */}
+          <motion.div
+            variants={scaleIn}
+            initial="hidden"
+            animate={featuresInView ? "visible" : "hidden"}
+            custom={0.1}
+            className="md:col-span-4 md:row-span-2 bg-[#FF71CE] border-4 border-black p-10 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative flex flex-col items-center justify-center text-center group"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ShieldAlert className="w-24 h-24 text-white mb-8" />
+            </motion.div>
+            <h3 className="text-[32px] md:text-[40px] font-black font-display uppercase text-white drop-shadow-[2px_2px_0px_black] leading-tight mb-4">
+              The<br />Escalator
+            </h3>
+            <motion.p
+              className="text-lg font-mono font-bold text-black bg-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              animate={{ rotate: [2, 4, 2, 0, 2] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              We physically call your phone if you ignore your tasks.
+            </motion.p>
+          </motion.div>
+
+          {/* Bento 3: Wide */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate={featuresInView ? "visible" : "hidden"}
+            custom={0.2}
+            className="md:col-span-4 bg-white border-4 border-black p-10 shadow-[12px_12px_0px_0px_#6A7BB4] relative flex flex-col justify-end"
+            whileHover={{ y: -5 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18 }}
+          >
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            >
+              <Timer className="w-12 h-12 text-[#6A7BB4] mb-4" />
+            </motion.div>
+            <h3 className="text-3xl font-black font-display uppercase mb-2">Sanctuary</h3>
+            <p className="text-sm font-mono font-bold text-gray-700">
+              Sprint mode to block noise. NSDR to recover.
+            </p>
+          </motion.div>
+
+          {/* Bento 4: Wide */}
+          <motion.div
+            variants={slideRight}
+            initial="hidden"
+            animate={featuresInView ? "visible" : "hidden"}
+            custom={0.3}
+            className="md:col-span-4 bg-[#FFCE5C] border-4 border-black p-10 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative flex flex-col justify-end overflow-hidden"
+            whileHover={{ y: -5, rotate: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18 }}
+          >
+            <SpinDeco
+              className="absolute -bottom-10 -right-10 w-40 h-40 border-[12px] border-black rounded-full opacity-20"
+              duration={15}
+            />
+            <motion.div
+              animate={{ scale: [1, 1.12, 1], rotate: [0, -8, 0] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Target className="w-12 h-12 text-black mb-4 relative z-10" />
+            </motion.div>
+            <h3 className="text-3xl font-black font-display uppercase mb-2 relative z-10">Gravity</h3>
+            <p className="text-sm font-mono font-bold text-gray-800 relative z-10">
+              Tasks have mass based on urgency.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── MASSIVE FOOTER ─── */}
+      <footer
+        className="w-full bg-black border-t-8 border-black pt-32 pb-12 px-6 text-center relative overflow-hidden mt-20"
+        ref={footerRef}
+      >
+        <div className="absolute inset-0 pattern-squiggles opacity-20 filter invert pointer-events-none" />
+
+        <FloatingBlob
+          className="absolute top-20 left-10 w-24 h-24 bg-[#FF71CE] rounded-full border-4 border-white shadow-[8px_8px_0px_0px_#FFCE5C]"
+          delay={0}
+        />
+        <FloatingBlob
+          className="absolute bottom-20 right-16 w-16 h-16 bg-[#FFCE5C] rounded-full border-4 border-white shadow-[4px_4px_0px_0px_#4ECDC4] opacity-60"
+          delay={1.5}
+        />
+
+        <div className="relative z-10 max-w-5xl mx-auto flex flex-col items-center">
+          <motion.h2
+            variants={fadeUp}
+            initial="hidden"
+            animate={footerInView ? "visible" : "hidden"}
+            className="text-[48px] md:text-[120px] text-white font-display font-black tracking-tighter uppercase leading-[0.8] mb-12"
+          >
+            Do The <br />
+            <motion.span
+              className="text-[#4ECDC4] inline-block"
+              animate={{ skewX: [0, -3, 0, 3, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Work.
+            </motion.span>
+          </motion.h2>
+
+          <motion.div
+            variants={scaleIn}
+            initial="hidden"
+            animate={footerInView ? "visible" : "hidden"}
+            custom={0.25}
+            whileHover={{ y: -6, rotate: 0 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 300, damping: 14 }}
+          >
+            <Link
+              href="/auth"
+              className="bg-[#FFCE5C] border-4 border-white text-black text-[20px] md:text-[40px] py-4 px-8 md:py-6 md:px-16 inline-flex items-center gap-6 font-black uppercase tracking-widest shadow-[12px_12px_0px_0px_#FF71CE] hover:shadow-[16px_16px_0px_0px_#FF71CE] transition-shadow transform -rotate-2 w-full justify-center sm:w-auto"
+            >
+              Start Now
+              <motion.span
+                animate={{ x: [0, 6, 0] }}
+                transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ArrowRight className="w-8 h-8 md:w-10 md:h-10" />
+              </motion.span>
+            </Link>
+          </motion.div>
+        </div>
+
+        <motion.div
+          variants={fadeIn}
+          initial="hidden"
+          animate={footerInView ? "visible" : "hidden"}
+          custom={0.5}
+          className="mt-40 border-t-4 border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between text-gray-400 font-black uppercase tracking-widest text-[12px] relative z-10 max-w-7xl mx-auto"
+        >
+          <span>© 2026 VibeShift</span>
+          <div className="flex gap-6 mt-4 md:mt-0">
+            <a href="#" className="hover:text-[#FFCE5C] transition-colors">Twitter</a>
+            <a href="#" className="hover:text-[#FF71CE] transition-colors">GitHub</a>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <motion.div whileHover={{ y: -5 }} className="glass-card group hover:bg-black hover:text-white transition-colors duration-200">
-              <div className="w-16 h-16 bg-[var(--accent-primary)] border-[4px] border-black flex items-center justify-center mb-6 shadow-[6px_6px_0px_0px_#000]">
-                <BrainCircuit className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-[26px] font-display font-black mb-4 uppercase leading-tight">Smart Priority</h3>
-              <p className="text-[16px] font-bold leading-relaxed">
-                Our Gemini-powered agent autonomously categorizes and ranks your tasks, assignments, and bills to ensure the most critical items are surfaced first.
-              </p>
-            </motion.div>
-
-            {/* Feature 2 */}
-            <motion.div whileHover={{ y: -5 }} className="glass-card group hover:bg-black hover:text-white transition-colors duration-200">
-              <div className="w-16 h-16 bg-[var(--accent-live)] border-[4px] border-black flex items-center justify-center mb-6 shadow-[6px_6px_0px_0px_#000]">
-                <Calendar className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-[26px] font-display font-black mb-4 uppercase leading-tight">AI Scheduling</h3>
-              <p className="text-[16px] font-bold leading-relaxed">
-                Deep integration with Google Calendar allows the AI to dynamically find open slots, block out deep-work time, and gracefully adjust when meetings run late.
-              </p>
-            </motion.div>
-
-            {/* Feature 3 */}
-            <motion.div whileHover={{ y: -5 }} className="glass-card group hover:bg-black hover:text-white transition-colors duration-200">
-              <div className="w-16 h-16 bg-[var(--color-success)] border-[4px] border-black flex items-center justify-center mb-6 shadow-[6px_6px_0px_0px_#000]">
-                <Activity className="w-8 h-8 text-black" />
-              </div>
-              <h3 className="text-[26px] font-display font-black mb-4 uppercase leading-tight">Interventions</h3>
-              <p className="text-[16px] font-bold leading-relaxed">
-                By monitoring your task density and deadline proximity, the agent calculates a live Cognitive Load Score and intervenes before you burn out.
-              </p>
-            </motion.div>
-
-            {/* Feature 4 */}
-            <motion.div whileHover={{ y: -5 }} className="glass-card group hover:bg-black hover:text-white transition-colors duration-200">
-              <div className="w-16 h-16 bg-[var(--color-warning)] border-[4px] border-black flex items-center justify-center mb-6 shadow-[6px_6px_0px_0px_#000]">
-                <Target className="w-8 h-8 text-black" />
-              </div>
-              <h3 className="text-[26px] font-display font-black mb-4 uppercase leading-tight">Goal Tracking</h3>
-              <p className="text-[16px] font-bold leading-relaxed">
-                Maintain consistency with dynamic streak tracking, daily flow visualization, and session progress metrics to build robust productivity habits over time.
-              </p>
-            </motion.div>
-
-             {/* Feature 5 */}
-             <motion.div whileHover={{ y: -5 }} className="glass-card group hover:bg-black hover:text-white transition-colors duration-200">
-              <div className="w-16 h-16 bg-white border-[4px] border-black flex items-center justify-center mb-6 shadow-[6px_6px_0px_0px_#000]">
-                <Mic className="w-8 h-8 text-black" />
-              </div>
-              <h3 className="text-[26px] font-display font-black mb-4 uppercase leading-tight">Voice Assistant</h3>
-              <p className="text-[16px] font-bold leading-relaxed">
-                Interact with your AI companion hands-free. Command VibeShift to log tasks, check deadlines, or initiate focus mode using just your voice.
-              </p>
-            </motion.div>
-
-            {/* Feature 6 */}
-            <motion.div whileHover={{ y: -5 }} className="glass-card group hover:bg-black hover:text-white transition-colors duration-200">
-              <div className="w-16 h-16 bg-[var(--color-danger)] border-[4px] border-black flex items-center justify-center mb-6 shadow-[6px_6px_0px_0px_#000]">
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-[26px] font-display font-black mb-4 uppercase leading-tight">Auto Execution</h3>
-              <p className="text-[16px] font-bold leading-relaxed">
-                It doesn't just remind you; it acts. The agent breaks down massive projects into atomic sub-tasks and suppresses non-critical notifications.
-              </p>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Call to Action Footer */}
-        <div className="mt-40 w-full max-w-5xl mx-auto text-center relative z-10 bg-white border-[8px] border-black p-20 shadow-[20px_20px_0px_0px_var(--accent-live)] transform -rotate-1 mb-20">
-           <div className="absolute -top-8 -left-8 w-16 h-16 border-[5px] border-black bg-[var(--color-warning)] shadow-[6px_6px_0px_0px_#000]"></div>
-           <div className="absolute -bottom-8 -right-8 w-16 h-16 border-[5px] border-black bg-[var(--accent-primary)] shadow-[6px_6px_0px_0px_#000]"></div>
-           
-           <h2 className="text-[60px] md:text-[80px] font-display font-black text-black mb-8 tracking-tight uppercase leading-[0.9]">Ready to conquer<br/>your deadlines?</h2>
-           <p className="text-[24px] font-bold text-black mb-12 max-w-2xl mx-auto border-b-[6px] border-[var(--accent-live)] pb-6 inline-block bg-white">Join the waitlist or try the demo today.</p>
-           
-           <div className="flex justify-center">
-             <Link href="/auth" className="btn-primary text-[24px] py-6 px-16 inline-flex items-center gap-4 shadow-[10px_10px_0px_0px_#000] hover:shadow-[14px_14px_0px_0px_#000] transition-all transform hover:-translate-y-2 bg-[var(--accent-primary)] border-[4px] border-black">
-                Start Using VibeShift <ArrowRight className="w-8 h-8" />
-             </Link>
-           </div>
-        </div>
-
-        {/* Simple Footer */}
-        <div className="border-t-[6px] border-black pt-12 pb-12 flex flex-col md:flex-row items-center justify-between w-full max-w-6xl mx-auto text-[18px] text-black font-black uppercase">
-           <div className="flex items-center gap-4 mb-6 md:mb-0 bg-white border-[4px] border-black px-6 py-3 shadow-[6px_6px_0px_0px_#000] transform rotate-1">
-             <div className="w-5 h-5 bg-[var(--accent-primary)] border-[3px] border-black transform rotate-45"></div>
-             <span className="tracking-widest">VibeShift AI</span>
-           </div>
-           <p className="text-center md:text-right bg-[var(--accent-live)] text-white border-[4px] border-black px-6 py-3 shadow-[6px_6px_0px_0px_#000] transform -rotate-1">Powered by Next.js & Gemini Intelligence.</p>
-        </div>
-      </main>
+        </motion.div>
+      </footer>
     </div>
   );
 }

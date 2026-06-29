@@ -1,5 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { tools } from '@/lib/gemini';
+import { GoogleGenAI } from '@google/genai';
 import { executeTool } from '@/lib/gemini-executor';
 import { adminDb } from '@/lib/firebase-admin';
 import { User, Task } from '@/types';
@@ -54,16 +53,14 @@ export async function POST(request: Request) {
 
     const systemPrompt = buildSystemPrompt(user, tasks);
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
-      tools,
-      systemInstruction: systemPrompt,
-    });
+    let genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    
 
     const encoder = new TextEncoder();
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
+
+    const model = (genAI as any); // temp bypass
 
     // Fire and forget loop so response returns stream immediately
     runGeminiLoop(model, messages, userId, writer, encoder).catch(console.error);
